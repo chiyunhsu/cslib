@@ -13,6 +13,7 @@ public import Cslib.Computability.Automata.NA.Concat
 public import Cslib.Computability.Automata.NA.Loop
 public import Cslib.Computability.Automata.NA.ToDA
 public import Mathlib.Computability.DFA
+public import Mathlib.Computability.RegularExpressions
 public import Mathlib.Data.Finite.Sum
 public import Mathlib.Data.Set.Card
 
@@ -183,5 +184,35 @@ theorem IsRegular.congr_fin_index {Symbol : Type}
   rw [IsRegular.iff_dfa]
   use Quotient c.eq, inferInstance, ⟨c.toDA, {a}⟩
   exact DA.FinAcc.congr_language_eq
+
+/-- The language containing only the one character string `a` is regular. -/
+@[simp]
+theorem IsRegular.char (a : Symbol) : ({[a]} : Language Symbol).IsRegular := by
+  rw [IsRegular.iff_dfa]
+  classical
+  let flts := FLTS.mk (fun (s : Fin 3) (x : Symbol) ↦ if (s = 0 ∧ x = a) then 1 else 2)
+  use Fin 3, inferInstance, ⟨DA.mk flts 0, {1}⟩
+  ext xs
+  induction xs using List.reverseRec with
+  | nil =>
+    simp only [Fin.isValue, mem_language, Accepts, FLTS.mtr, foldl_nil, mem_singleton_iff,
+      zero_ne_one, false_iff, flts]
+    change [] ∉ ( { [a] } : Set (List Symbol) )
+    simp
+  | append_singleton xs x ih =>
+    simp only [Fin.isValue, mem_language, Accepts, mem_singleton_iff, FLTS.mtr_concat_eq] at ih ⊢
+    sorry
+
+/- Languages matching regular expressions are regular. -/
+theorem IsRegular.regex [Inhabited Symbol] {l : Language Symbol}
+    (h : ∃ r : RegularExpression Symbol, r.matches' = l) : l.IsRegular := by
+  obtain ⟨r, hr⟩ := h
+  induction r generalizing l with
+  | zero => simp [← hr]
+  | epsilon => simp [← hr]
+  | char a => simp [← hr, IsRegular.char a]
+  | plus P Q hP hQ => simpa [← hr] using IsRegular.add (hP rfl) (hQ rfl)
+  | comp P Q hP hQ => simpa [← hr] using IsRegular.mul (hP rfl) (hQ rfl)
+  | star P hP => simpa [← hr] using IsRegular.kstar (hP rfl)
 
 end Cslib.Language
