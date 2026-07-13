@@ -204,46 +204,38 @@ theorem IsRegular.char (a : Symbol) : ({[a]} : Language Symbol).IsRegular := by
     constructor
     · intro h
       have h1 (n : Fin 3) (ch : Symbol) : flts.tr n ch = 1 ↔ n = 0 ∧ ch = a := by
-        simp [flts]
+        simp only [Fin.isValue, ite_eq_left_iff, not_and, Fin.reduceEq, imp_false,
+        Classical.not_imp, Decidable.not_not, flts]
       have h2 (n : Fin 3) (ch : Symbol) : flts.tr n ch = 0 → False := by
-        simp [flts]
+        simp only [Fin.isValue, imp_false, flts]
         intro h2_1
-        split_ifs at h2_1 with hP
-        norm_num at h2_1
-        omega
+        split_ifs at h2_1 with hP <;> omega
       have h3 (l : List Symbol) : flts.mtr 0 l = 0 → l = [] := by
         induction l using List.reverseRec with
         | nil =>
-        intro h3_1
-        rfl
-        | append_singleton ys z ihl =>
-        intro a1
-        simp only [Cslib.FLTS.mtr_concat_eq] at a1
-        exfalso
-        apply h2
-        apply a1
-      have h4 : flts.mtr 0 xs = 0 ∧ x = a := by
-        apply (h1 (flts.mtr 0 xs) x).mp
-        exact h
-      rw [h4.2]
-      have h5 : xs = [] := by
-        apply (h3 xs)
-        exact h4.1
-      rw [h5]
-      simp
+          simp only [Fin.isValue, FLTS.mtr_nil_eq, imp_self]
+        | append_singleton =>
+          intro a1
+          simp only [Cslib.FLTS.mtr_concat_eq] at a1
+          exfalso
+          apply h2
+          apply a1
+      have h4 : flts.mtr 0 xs = 0 ∧ x = a := (h1 (flts.mtr 0 xs) x).mp h
+      rw [h4.2, (h3 xs) h4.1]
+      simp only [nil_append]
       trivial
     · intro h
       cases xs with
         | nil =>
           simp only [Fin.isValue, Cslib.FLTS.mtr, foldl_nil, flts, true_and, Fin.isValue,
             ite_eq_left_iff, Fin.reduceEq, imp_false, Decidable.not_not]
-          simp at h
+          simp only [nil_append] at h
           have h2 : ([x] : List Symbol) = [a] := h
-          simp at h2
+          simp only [cons.injEq, and_true] at h2
           exact h2
         | cons y ys =>
           have h2 : (y :: ys ++ [x] : List Symbol) = [a] := h
-          simp at h2
+          simp only [cons_append, cons.injEq, append_eq_nil_iff, cons_ne_self, and_false] at h2
 
 /- Languages matching regular expressions are regular. -/
 theorem IsRegular.regex [Inhabited Symbol] {l : Language Symbol}
