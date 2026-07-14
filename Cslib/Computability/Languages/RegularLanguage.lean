@@ -195,24 +195,12 @@ theorem IsRegular.char (a : Symbol) : ({[a]} : Language Symbol).IsRegular := by
   ext xs
   change _ ↔ xs ∈ ({[a]} : Set (List Symbol))
   induction xs using List.reverseRec with
-  | nil =>
-    simp only [mem_language, Accepts, flts]
-    grind
+  | nil => grind [Accepts]
   | append_singleton xs x ih =>
     simp only [Fin.isValue, mem_language, Accepts, mem_singleton_iff, FLTS.mtr_concat_eq] at ih ⊢
     constructor
-    · intro h
-      have h1 (n : Fin 3) (ch : Symbol) : flts.tr n ch = 1 ↔ n = 0 ∧ ch = a := by simp [flts]
-      have h2 (n : Fin 3) (ch : Symbol) : flts.tr n ch = 0 → False := by
-        simp only [flts]
-        grind
-      have h3 (l : List Symbol) : flts.mtr 0 l = 0 → l = [] := by
-        induction l using List.reverseRec <;> simp_all [FLTS.mtr_concat_eq]
-      have h4 : flts.mtr 0 xs = 0 ∧ x = a := (h1 (flts.mtr 0 xs) x).mp h
-      rw [h4.2, (h3 xs) h4.1]
-      simp only [nil_append]
-    · intro h
-      simp_all [flts, List.append_eq_cons_iff]
+    · induction xs using List.reverseRec <;> grind
+    · simp_all [flts, List.append_eq_cons_iff]
 
 /- Languages matching regular expressions are regular. -/
 theorem IsRegular.regex [Inhabited Symbol] {l : Language Symbol}
