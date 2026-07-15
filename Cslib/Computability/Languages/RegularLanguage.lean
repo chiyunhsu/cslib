@@ -217,9 +217,22 @@ theorem matches'_sum_map {α : Type*} (L : List α) (f : α → RegularExpressio
       iUnion_iUnion_eq_or_left, ih]
     rfl
 
+/-
+Should later be put in Computability/Automata/DA
+The language defined by a DFA is equal to
+the union of the languages defined by the DFA with only one accepting state.
+-/
+-- Brooke can work on this. I am not sure whether it is definitely needed later though.
+theorem language_sum {dfa : DA.FinAcc State Symbol} :
+    language dfa =
+    ⋃ s ∈ dfa.accept, language {dfa with accept := {s}} := by
+  sorry
+
 theorem IsRegular.regex {l : Language Symbol} (h : l.IsRegular) :
     ∃ r : RegularExpression Symbol, matches' r = l := by
-  obtain ⟨State, h_fin, ⟨da, acc⟩, rfl⟩ := Cslib.Language.IsRegular.iff_dfa.mp h
+  obtain ⟨State, h_fin, dfa, rfl⟩ := Cslib.Language.IsRegular.iff_dfa.mp h
+  rw [language_sum]
+  obtain ⟨da, acc⟩ := dfa
   let : Fintype State := Fintype.ofFinite State
   let eq : State ≃ Fin (Fintype.card State) := Fintype.equivFin State
   let acc_List : List (Fin (Fintype.card State)) :=
@@ -227,8 +240,7 @@ theorem IsRegular.regex {l : Language Symbol} (h : l.IsRegular) :
   let regex :=
     (acc_List.map (fun i => regex_of_dfa ⟨da, acc⟩ (eq da.start) i (Fintype.card State))).sum
   use regex
-  ext xs
-  simp only [matches'_sum_map, mem_language, Accepts, regex]
+  simp only [matches'_sum_map, regex]
   sorry
 
 end RegularExpression
