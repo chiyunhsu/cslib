@@ -13,6 +13,7 @@ public import Cslib.Computability.Automata.NA.Concat
 public import Cslib.Computability.Automata.NA.Loop
 public import Cslib.Computability.Automata.NA.ToDA
 public import Mathlib.Computability.DFA
+public import Mathlib.Computability.RegularExpressions
 public import Mathlib.Data.Finite.Sum
 public import Mathlib.Data.Set.Card
 
@@ -183,5 +184,53 @@ theorem IsRegular.congr_fin_index {Symbol : Type}
   rw [IsRegular.iff_dfa]
   use Quotient c.eq, inferInstance, ⟨c.toDA, {a}⟩
   exact DA.FinAcc.congr_language_eq
+
+/- We use Kleene's Algorithm for DFA to prove a regular language can be expressed as a regex. -/
+section RegularExpression
+
+open RegularExpression
+
+variable {State : Type*} [Finite State]
+
+noncomputable instance : Fintype State := Fintype.ofFinite State
+
+/-
+regex_of_dfa i j k is the regex for the path from state i to state j passing through states < k.
+When k = 0, i = j, the regex is ε union all characters from state i to state i.
+When k = 0, i ≠ j, the regex is all characters from state i to state j.
+For k + 1, the regex is the union of regex_of_dfa i j k and
+regex_of_dfa i k k concat (regex_of_dfa k k k)^* concat regex_of_dfa k j k.
+-/
+-- Brooke can work on this
+noncomputable def regex_of_dfa (dfa : DA.FinAcc State Symbol)
+    (i j : Fin (Fintype.card State)) : ℕ → RegularExpression Symbol
+  | 0 => if i = j then sorry else sorry
+  | k + 1 => if k ≥ Fintype.card State then regex_of_dfa dfa i j k else sorry
+
+/- From Yi-Siong's PR: https://github.com/leanprover-community/mathlib4/pull/35600 -/
+theorem matches'_sum_map {α : Type*} (L : List α) (f : α → RegularExpression Symbol) :
+    (L.map f).sum.matches' = ⋃ x ∈ L, (f x).matches' := by
+  induction L with
+  | nil => simp [Language.zero_def]
+  | cons b L' ih =>
+    simp only [List.map_cons, List.sum_cons, matches', add_eq_sup, List.mem_cons,
+      iUnion_iUnion_eq_or_left, ih]
+    rfl
+
+theorem IsRegular.regex {l : Language Symbol} (h : l.IsRegular) :
+    ∃ r : RegularExpression Symbol, matches' r = l := by
+  obtain ⟨State, h_fin, ⟨da, acc⟩, rfl⟩ := Cslib.Language.IsRegular.iff_dfa.mp h
+  let : Fintype State := Fintype.ofFinite State
+  let eq : State ≃ Fin (Fintype.card State) := Fintype.equivFin State
+  let acc_List : List (Fin (Fintype.card State)) :=
+    (acc.toFinset.map eq.toEmbedding).sort (· ≤ ·)
+  let regex :=
+    (acc_List.map (fun i => regex_of_dfa ⟨da, acc⟩ (eq da.start) i (Fintype.card State))).sum
+  use regex
+  ext xs
+  simp only [matches'_sum_map, mem_language, Accepts, regex]
+  sorry
+
+end RegularExpression
 
 end Cslib.Language
