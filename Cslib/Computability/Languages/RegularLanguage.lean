@@ -12,6 +12,7 @@ public import Cslib.Computability.Automata.DA.ToNA
 public import Cslib.Computability.Automata.NA.Concat
 public import Cslib.Computability.Automata.NA.Loop
 public import Cslib.Computability.Automata.NA.ToDA
+public import Cslib.Computability.Automata.Acceptors.Acceptor
 public import Mathlib.Computability.DFA
 public import Mathlib.Computability.RegularExpressions
 public import Mathlib.Data.Finite.Sum
@@ -220,6 +221,11 @@ theorem IsRegular.regex {r : RegularExpression Symbol} :
   | star P hP => grind [RegularExpression.matches', IsRegular.kstar]
 
 /- We use Kleene's Algorithm for DFA to prove a regular language can be expressed as a regex. -/
+lemma mem_add_language_iff {xs : List Symbol} {l₁ l₂ : Language Symbol} :
+    xs ∈ l₁ + l₂ ↔ xs ∈ l₁ ∨ xs ∈ l₂ := by
+  rw [Language.add_def]
+  exact mem_union xs l₁ l₂
+
 section RegularExpression
 
 open RegularExpression
@@ -242,28 +248,40 @@ noncomputable def regex_of_dfa (dfa : DA.FinAcc State Symbol)
   | k + 1 => if k ≥ Fintype.card State then regex_of_dfa dfa i j k else sorry
 
 /- From Yi-Siong's PR: https://github.com/leanprover-community/mathlib4/pull/35600 -/
-theorem matches'_sum_map {α : Type*} (L : List α) (f : α → RegularExpression Symbol) :
-    (L.map f).sum.matches' = ⋃ x ∈ L, (f x).matches' := by
+-- theorem matches'_sum_map0 {α : Type*} (L : List α) (f : α → RegularExpression Symbol) :
+--     (L.map f).sum.matches' = ⋃ x ∈ L, (f x).matches' := by
+--   induction L with
+--   | nil => simp [Language.zero_def]
+--   | cons b L' ih =>
+--     simp only [List.map_cons, List.sum_cons, matches', add_eq_sup, List.mem_cons,
+--       iUnion_iUnion_eq_or_left, ih]
+--     rfl
+
+/- Modified from Yi-Siong's PR: https://github.com/leanprover-community/mathlib4/pull/35600 -/
+theorem matches'_sum (L : List (RegularExpression Symbol)) :
+    (L.sum).matches' = (L.map matches').sum := by
   induction L with
-  | nil => simp [Language.zero_def]
-  | cons b L' ih =>
-    simp only [List.map_cons, List.sum_cons, matches', add_eq_sup, List.mem_cons,
-      iUnion_iUnion_eq_or_left, ih]
-    rfl
+  | nil => simp
+  | cons b L' ih => simp [ih]
 
 /-
 Should later be put in Computability/Automata/DA
 The language defined by a DFA is equal to
 the union of the languages defined by the DFA with only one accepting state.
 -/
--- Brooke can work on this. I am not sure whether it is definitely needed later though.
+-- I need to modify the statement to use addition rather than union.
+-- Union is true but I need to make it compatible with Finset sum and List sum.
+theorem language_union {dfa : DA.FinAcc State Symbol} :
+    language dfa =
+    ⋃ s ∈ dfa.accept, language {dfa with accept := {s}} := by sorry
+
 theorem language_sum {dfa : DA.FinAcc State Symbol} :
     language dfa =
-    ⋃ s ∈ dfa.accept, language {dfa with accept := {s}} := by
-  sorry
+    ∑ s ∈ dfa.accept.toFinset, language {dfa with accept := {s}} := by sorry
 
-theorem IsRegular.regex {l : Language Symbol} (h : l.IsRegular) :
-    ∃ r : RegularExpression Symbol, matches' r = l := by
+theorem IsRegular.iff_regex [DecidableEq State] {l : Language Symbol} :
+    l.IsRegular ↔ ∃ r : RegularExpression Symbol, l = matches' r := by
+  refine ⟨fun h => ?_, fun ⟨r, hr⟩ => hr ▸ IsRegular.regex⟩
   obtain ⟨State, h_fin, dfa, rfl⟩ := Cslib.Language.IsRegular.iff_dfa.mp h
   rw [language_sum]
   obtain ⟨da, acc⟩ := dfa
@@ -274,7 +292,7 @@ theorem IsRegular.regex {l : Language Symbol} (h : l.IsRegular) :
   let regex :=
     (acc_List.map (fun i => regex_of_dfa ⟨da, acc⟩ (eq da.start) i (Fintype.card State))).sum
   use regex
-  simp only [matches'_sum_map, regex]
+  simp only [matches'_sum, regex]
   sorry
 
 end RegularExpression
