@@ -228,6 +228,18 @@ section RegularExpression
 
 open RegularExpression
 
+-- Brooke can work on this (SECOND EASIEST)
+theorem IsRegular.iff_dfa' {l : Language Symbol} :
+    l.IsRegular ↔ ∃ (n : ℕ), ∃ dfa : DA.FinAcc (Fin n) Symbol, language dfa = l := by
+  #check IsRegular.iff_dfa
+  constructor
+  · intro h_reg
+    obtain ⟨State, h_fin, dfa_abs, rfl⟩ := IsRegular.iff_dfa.mp h_reg
+    -- Use Fintype.equivFin State to get an equivalence of State with Fin n.
+    -- Construct dfa from dfa_abs using the equivalence
+    sorry
+  · sorry
+
 variable {State : Type*} [Finite State]
 
 noncomputable instance : Fintype State := Fintype.ofFinite State
@@ -240,7 +252,6 @@ When k = 0, i ≠ j, the regex is all characters from state i to state j.
 For k + 1, the regex is the union of regex_of_dfa i j k and
 regex_of_dfa i k k concat (regex_of_dfa k k k)^* concat regex_of_dfa k j k.
 -/
--- Brooke can work on this
 
 variable [Fintype Symbol]
 
@@ -260,6 +271,11 @@ noncomputable def regex_of_dfa (dfa : DA.FinAcc State Symbol)
         regex_of_dfa dfa i kFin k * (regex_of_dfa dfa kFin kFin k).star *
           regex_of_dfa dfa kFin j k
 
+-- Brooke can work on this (EASIEST)
+noncomputable def regex_of_dfa' {n : ℕ} (dfa : DA.FinAcc (Fin n) Symbol)
+    (i j : Fin n) : ℕ → RegularExpression Symbol
+  | 0 => sorry
+  | k + 1 => sorry
 
 /- From Yi-Siong's PR: https://github.com/leanprover-community/mathlib4/pull/35600 -/
 -- theorem matches'_sum_map0 {α : Type*} (L : List α) (f : α → RegularExpression Symbol) :
@@ -290,48 +306,54 @@ omit [Finite State] [Fintype Symbol] in
 theorem language_union {dfa : DA.FinAcc State Symbol} :
     language dfa =
     ⋃ s ∈ dfa.accept, language {dfa with accept := {s}} := by
-    ext xs
-    simp only [mem_language]
-    constructor
-    · intro h1
-      refine Set.mem_biUnion h1 ?_
-      rfl
-    · intro h1
-      obtain ⟨s, hs, hmem⟩ := Set.mem_iUnion₂.mp h1
-      change dfa.mtr dfa.start xs ∈ dfa.accept
-      change dfa.mtr dfa.start xs = s at hmem
-      rw [hmem]
-      exact hs
+  ext xs
+  simp only [mem_language]
+  constructor
+  · intro h1
+    refine Set.mem_biUnion h1 ?_
+    rfl
+  · intro h1
+    obtain ⟨s, hs, hmem⟩ := Set.mem_iUnion₂.mp h1
+    change dfa.mtr dfa.start xs ∈ dfa.accept
+    change dfa.mtr dfa.start xs = s at hmem
+    rw [hmem]
+    exact hs
 
+-- Brooke can work on this (Work on this last)
+theorem language_sum {n : ℕ} {dfa : DA.FinAcc (Fin n) Symbol} :
+    language dfa = (((dfa.accept.toFinset).sort (· ≤ ·)).map
+    (fun s => language {dfa with accept := {s}})).sum := by
+  #check DFA.mk
+  sorry
 
-
-
-theorem language_sum {dfa : DA.FinAcc State Symbol} :
-    language dfa =
-    ∑ s ∈ dfa.accept.toFinset, language {dfa with accept := {s}} := by
-
-    ext xs
-    simp
-    constructor
-    intro h1
-
+/- IsRegular.iff_regex in the situation where the there is a single accepting state -/
+omit [Finite State] [Fintype Symbol] in
+theorem acc_singleton {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
+    language dfa = matches' (regex_of_dfa' dfa dfa.start s n) := by sorry
 
 
 theorem IsRegular.iff_regex [DecidableEq State] {l : Language Symbol} :
     l.IsRegular ↔ ∃ r : RegularExpression Symbol, l = matches' r := by
   refine ⟨fun h => ?_, fun ⟨r, hr⟩ => hr ▸ IsRegular.regex⟩
-  obtain ⟨State, h_fin, dfa, rfl⟩ := Cslib.Language.IsRegular.iff_dfa.mp h
+  obtain ⟨n, dfa, rfl⟩ := Cslib.Language.IsRegular.iff_dfa'.mp h
+  -- obtain ⟨da, acc⟩ := dfa
+  -- let : Fintype State := Fintype.ofFinite State
+  -- let eq : State ≃ Fin (Fintype.card State) := Fintype.equivFin State
+  set acc_List : List (Fin n) := (dfa.accept.toFinset).sort (· ≤ ·) with h_acc
+
   rw [language_sum]
-  obtain ⟨da, acc⟩ := dfa
-  let : Fintype State := Fintype.ofFinite State
-  let eq : State ≃ Fin (Fintype.card State) := Fintype.equivFin State
-  let acc_List : List (Fin (Fintype.card State)) :=
-    (acc.toFinset.map eq.toEmbedding).sort (· ≤ ·)
   let regex :=
-    (acc_List.map (fun i => regex_of_dfa ⟨da, acc⟩ (eq da.start) i (Fintype.card State))).sum
+    (acc_List.map (fun i => regex_of_dfa' dfa (dfa.start) i n)).sum
   use regex
   simp only [matches'_sum, regex]
-  sorry
+  apply congrArg
+  rw [← h_acc, List.map_map]
+  suffices h :
+    (fun s => language {dfa with accept := {s}}) =
+    (matches' ∘ fun i => regex_of_dfa' {dfa with accept := {i}} dfa.start i n) by sorry
+  funext s
+  simp only [Function.comp_apply]
+  exact acc_singleton rfl
 
 end RegularExpression
 
