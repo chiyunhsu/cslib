@@ -234,6 +234,7 @@ variable {State : Type*} [Finite State]
 
 noncomputable instance : Fintype State := Fintype.ofFinite State
 
+
 /-
 regex_of_dfa i j k is the regex for the path from state i to state j passing through states < k.
 When k = 0, i = j, the regex is ε union all characters from state i to state i.
@@ -242,10 +243,25 @@ For k + 1, the regex is the union of regex_of_dfa i j k and
 regex_of_dfa i k k concat (regex_of_dfa k k k)^* concat regex_of_dfa k j k.
 -/
 -- Brooke can work on this
+
+variable [Fintype Symbol]
+
+open scoped Classical in
 noncomputable def regex_of_dfa (dfa : DA.FinAcc State Symbol)
     (i j : Fin (Fintype.card State)) : ℕ → RegularExpression Symbol
-  | 0 => if i = j then sorry else sorry
-  | k + 1 => if k ≥ Fintype.card State then regex_of_dfa dfa i j k else sorry
+  | 0 =>
+    let e := Fintype.equivFin State
+    let chars := (Finset.univ.filter
+      (fun x : Symbol ↦ dfa.tr (e.symm i) x = e.symm j)).toList.map RegularExpression.char
+    if i = j then 1 + chars.sum else chars.sum
+  | k + 1 =>
+    if h : k ≥ Fintype.card State then regex_of_dfa dfa i j k
+    else
+      let kFin : Fin (Fintype.card State) := ⟨k, by omega⟩
+      regex_of_dfa dfa i j k +
+        regex_of_dfa dfa i kFin k * (regex_of_dfa dfa kFin kFin k).star *
+          regex_of_dfa dfa kFin j k
+
 
 /- From Yi-Siong's PR: https://github.com/leanprover-community/mathlib4/pull/35600 -/
 -- theorem matches'_sum_map0 {α : Type*} (L : List α) (f : α → RegularExpression Symbol) :
@@ -271,13 +287,37 @@ the union of the languages defined by the DFA with only one accepting state.
 -/
 -- I need to modify the statement to use addition rather than union.
 -- Union is true but I need to make it compatible with Finset sum and List sum.
+
+omit [Finite State] [Fintype Symbol] in
 theorem language_union {dfa : DA.FinAcc State Symbol} :
     language dfa =
-    ⋃ s ∈ dfa.accept, language {dfa with accept := {s}} := by sorry
+    ⋃ s ∈ dfa.accept, language {dfa with accept := {s}} := by
+    ext xs
+    simp only [mem_language]
+    constructor
+    · intro h1
+      refine Set.mem_biUnion h1 ?_
+      rfl
+    · intro h1
+      obtain ⟨s, hs, hmem⟩ := Set.mem_iUnion₂.mp h1
+      change dfa.mtr dfa.start xs ∈ dfa.accept
+      change dfa.mtr dfa.start xs = s at hmem
+      rw [hmem]
+      exact hs
+
+
+
 
 theorem language_sum {dfa : DA.FinAcc State Symbol} :
     language dfa =
-    ∑ s ∈ dfa.accept.toFinset, language {dfa with accept := {s}} := by sorry
+    ∑ s ∈ dfa.accept.toFinset, language {dfa with accept := {s}} := by
+
+    ext xs
+    simp
+    constructor
+    intro h1
+
+
 
 theorem IsRegular.iff_regex [DecidableEq State] {l : Language Symbol} :
     l.IsRegular ↔ ∃ r : RegularExpression Symbol, l = matches' r := by
