@@ -274,8 +274,17 @@ noncomputable def regex_of_dfa (dfa : DA.FinAcc State Symbol)
 -- Brooke can work on this (EASIEST)
 noncomputable def regex_of_dfa' {n : ℕ} (dfa : DA.FinAcc (Fin n) Symbol)
     (i j : Fin n) : ℕ → RegularExpression Symbol
-  | 0 => sorry
-  | k + 1 => sorry
+  | 0 =>
+    let chars := (Finset.univ.filter
+      (fun x : Symbol ↦ dfa.tr i x = j)).toList.map RegularExpression.char
+    if i = j then 1 + chars.sum else chars.sum
+  | k + 1 =>
+    if h : k ≥ n then regex_of_dfa' dfa i j k
+    else
+      let kFin : Fin n := ⟨k, by omega⟩
+      regex_of_dfa' dfa i j k +
+        regex_of_dfa' dfa i kFin k * (regex_of_dfa' dfa kFin kFin k).star *
+          regex_of_dfa' dfa kFin j k
 
 /- From Yi-Siong's PR: https://github.com/leanprover-community/mathlib4/pull/35600 -/
 -- theorem matches'_sum_map0 {α : Type*} (L : List α) (f : α → RegularExpression Symbol) :
