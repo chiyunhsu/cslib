@@ -231,14 +231,22 @@ open RegularExpression
 -- Brooke can work on this (SECOND EASIEST)
 theorem IsRegular.iff_dfa' {l : Language Symbol} :
     l.IsRegular ↔ ∃ (n : ℕ), ∃ dfa : DA.FinAcc (Fin n) Symbol, language dfa = l := by
-  #check IsRegular.iff_dfa
   constructor
   · intro h_reg
     obtain ⟨State, h_fin, dfa_abs, rfl⟩ := IsRegular.iff_dfa.mp h_reg
+    have : Fintype State := Fintype.ofFinite State
+    let n := Fintype.card State
+    let dfa := DFA.mk dfa_abs.tr dfa_abs.start dfa_abs.accept
+    let dfa2 := DFA.reindex (Fintype.equivFin State) (dfa)
+    let dfa3 := DA.FinAcc.mk {tr := dfa2.step, start := dfa2.start} dfa2.accept
+    use n, dfa3
+    exact DFA.accepts_reindex dfa (Fintype.equivFin State)
     -- Use Fintype.equivFin State to get an equivalence of State with Fin n.
     -- Construct dfa from dfa_abs using the equivalence
-    sorry
-  · sorry
+  · intro h1
+    obtain ⟨n, dfa, h⟩ := h1
+    apply IsRegular.iff_dfa.mpr
+    exact ⟨Fin n, inferInstance, dfa, h⟩
 
 variable {State : Type*} [Finite State]
 
