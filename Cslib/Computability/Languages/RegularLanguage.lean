@@ -337,11 +337,27 @@ theorem language_union {dfa : DA.FinAcc State Symbol} :
     exact hs
 
 -- Brooke can work on this (Work on this last)
+omit [Fintype Symbol] in
 theorem language_sum {n : ℕ} {dfa : DA.FinAcc (Fin n) Symbol} :
     language dfa = (((dfa.accept.toFinset).sort (· ≤ ·)).map
     (fun s => language {dfa with accept := {s}})).sum := by
-  #check DFA.mk
-  sorry
+  ext xs
+  simp only [mem_language]
+  have memsum (l : List (Fin n)) : xs ∈ (l.map (fun s => language {dfa with accept := {s}})).sum
+  ↔ ∃ s ∈ l, xs ∈ language {dfa with accept := {s}} := by
+    induction l with
+    | nil =>
+      simp
+    | cons a l ih =>
+      simp only [List.map_cons, List.sum_cons, Language.mem_add, List.mem_cons, ih]
+      grind
+  rw [memsum]
+  simp only [Finset.mem_sort, Set.mem_toFinset, mem_language]
+  grind [Accepts]
+
+
+
+
 
 /- IsRegular.iff_regex in the situation where the there is a single accepting state -/
 omit [Finite State] [Fintype Symbol] in
