@@ -18,6 +18,9 @@ public import Mathlib.Computability.RegularExpressions
 public import Mathlib.Data.Finite.Sum
 public import Mathlib.Data.Set.Card
 
+public import Mathlib.Computability.NFA
+public import Mathlib.Computability.EpsilonNFA
+
 /-!
 # Regular languages
 -/
@@ -295,6 +298,50 @@ noncomputable def regex_of_dfa' {n : ℕ} (dfa : DA.FinAcc (Fin n) Symbol)
         regex_of_dfa' dfa i kFin k * (regex_of_dfa' dfa kFin kFin k).star *
           regex_of_dfa' dfa kFin j k
 
+#check εNFA.IsPath
+-- Mimicing the definition of NFA.Path. Path s xs is the type of
+-- inductive Path : State → List Symbol → Type (max u_1 u_2)
+--   | nil (s : State) : Path s []
+--   | cons (s u : State) (a : Symbol) (x : List Symbol) : Path (flts.tr s a) x → Path s (a :: x)
+
+def Path_supp (flts : FLTS State Symbol) : State → List Symbol → Set State
+  | _, [] => ∅
+  | _, [_] => ∅
+  | s, a :: x => {flts.tr s a} ∪ Path_supp flts (flts.tr s a) x
+
+-- /-- An `Acceptor` is a machine that recognises strings (lists of symbols in an alphabet). -/
+-- class Acceptor (A : Type u) (Symbol : outParam (Type v)) where
+--   /-- Predicate that establishes whether a string `xs` is accepted. -/
+--   Accepts (a : A) (xs : List Symbol) : Prop
+
+-- /-- The language of an `Acceptor` is the set of strings it `Accepts`. -/
+-- @[scoped grind .]
+-- def language [Acceptor A Symbol] (a : A) : Language Symbol :=
+--   { xs | Accepts a xs }
+
+structure Path_of_FLTS (n : ℕ) (Symbol : Type*) extends FLTS (Fin n) Symbol where
+  start : Fin n
+  finish : Fin n
+  bound : ℕ
+
+instance {n : ℕ} : Acceptor (Path_of_FLTS n Symbol) Symbol where
+  Accepts (a : Path_of_FLTS n Symbol) (xs : List Symbol) :=
+    a.mtr a.start xs = a.finish ∧ (∀ i ∈ Path_supp a.toFLTS a.start xs, i < a.bound)
+
+theorem language_path_eq_regex_of_dfa {n k : ℕ} {i j : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} :
+    language (Path_of_FLTS.mk dfa.toFLTS i j k) = matches' (regex_of_dfa' dfa i j k) := by
+  ext xs
+  simp only [mem_language, Accepts]
+  induction k with
+  | zero =>
+    simp only [not_lt_zero, imp_false, regex_of_dfa']
+    split_ifs with heq
+    · rw [heq, matches'_add]
+      sorry
+    · sorry
+  | succ =>
+    sorry
+
 /- From Yi-Siong's PR: https://github.com/leanprover-community/mathlib4/pull/35600 -/
 -- theorem matches'_sum_map0 {α : Type*} (L : List α) (f : α → RegularExpression Symbol) :
 --     (L.map f).sum.matches' = ⋃ x ∈ L, (f x).matches' := by
@@ -356,7 +403,6 @@ theorem language_sum {n : ℕ} {dfa : DA.FinAcc (Fin n) Symbol} :
   grind [Accepts]
 
 /- IsRegular.iff_regex in the situation where the there is a single accepting state -/
-omit [Finite State] [Fintype Symbol] in
 theorem acc_singleton {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
     language dfa = matches' (regex_of_dfa' dfa dfa.start s n) := by sorry
 
