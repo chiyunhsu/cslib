@@ -231,21 +231,17 @@ section RegularExpression
 
 open RegularExpression
 
-
--- Brooke can work on this (SECOND EASIEST)
+-- Ask Chou whether to add reindex lemma for cslib DFA,
+-- rather than using reindex lemma for mathlib DFA.
 theorem IsRegular.iff_dfa' {l : Language Symbol} :
     l.IsRegular ↔ ∃ (n : ℕ), ∃ dfa : DA.FinAcc (Fin n) Symbol, language dfa = l := by
-  rw [IsRegular.iff_dfa] -- do this in front of constructor
+  rw [IsRegular.iff_dfa]
   constructor
   · rintro ⟨State, h_fin, ⟨⟨flts, start⟩, acc⟩, rfl⟩
-    -- intro h_reg
-    -- obtain ⟨State, h_fin, dfa_abs, rfl⟩ := h_reg
     have : Fintype State := Fintype.ofFinite State
-    -- let n := Fintype.card State
     let dfa := DFA.mk flts.tr start acc -- mathlib
     let dfa2 := DFA.reindex (Fintype.equivFin State) dfa -- mathlib on Fin n
     let dfa3 := DA.FinAcc.mk {tr := dfa2.step, start := dfa2.start} dfa2.accept -- cslib on Fin n
-    -- use n, dfa3
     exact ⟨Fintype.card State, dfa3, DFA.accepts_reindex dfa (Fintype.equivFin State)⟩
     -- exact ⟨n, dfa3, DFA.accepts_reindex dfa (Fintype.equivFin State)⟩
     -- exact DFA.accepts_reindex dfa (Fintype.equivFin State)
@@ -283,7 +279,6 @@ noncomputable def regex_of_dfa (dfa : DA.FinAcc State Symbol)
         regex_of_dfa dfa i kFin k * (regex_of_dfa dfa kFin kFin k).star *
           regex_of_dfa dfa kFin j k
 
--- Brooke can work on this (EASIEST)
 noncomputable def regex_of_dfa' {n : ℕ} (dfa : DA.FinAcc (Fin n) Symbol)
     (i j : Fin n) : ℕ → RegularExpression Symbol
   | 0 =>
@@ -308,6 +303,15 @@ def Path_supp (flts : FLTS State Symbol) : State → List Symbol → Set State
   | _, [] => ∅
   | _, [_] => ∅
   | s, a :: x => {flts.tr s a} ∪ Path_supp flts (flts.tr s a) x
+
+-- When cardinality of path_supp = 0, then length xs = 0 or 1.
+-- When cardinality of path_supp = 1, then length xs = 2 or above.
+-- When cardinality of path_supp = 2, then length xs = 3 or above.
+-- When cardinality of path_supp = n > 0, then length xs ≥ n + 1 and assume all values.
+-- Brooke can work on this (Second Easiest)
+lemma empty_or_char_of_path_supp_empty {flts : FLTS State Symbol} {s : State} {xs : List Symbol}
+    (h : Path_supp flts s xs = ∅) : xs = [] ∨ (∃ a : Symbol, xs = [a]) :=
+  by sorry
 
 -- /-- An `Acceptor` is a machine that recognises strings (lists of symbols in an alphabet). -/
 -- class Acceptor (A : Type u) (Symbol : outParam (Type v)) where
@@ -336,11 +340,23 @@ theorem language_path_eq_regex_of_dfa {n k : ℕ} {i j : Fin n} {dfa : DA.FinAcc
   | zero =>
     simp only [not_lt_zero, imp_false, regex_of_dfa']
     split_ifs with heq
-    · rw [heq, matches'_add]
+    · -- The case of i = j, k = 0
+      rw [heq, matches'_add]
       sorry
-    · sorry
+    · -- The case of i ≠ j, k = 0
+      sorry
   | succ =>
     sorry
+
+-- Brooke can work on this (Easiest)
+lemma aux {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
+    language dfa = language (Path_of_FLTS.mk dfa.toFLTS dfa.start s n) := by sorry
+
+/- IsRegular.iff_regex in the situation where the there is a single accepting state -/
+theorem acc_singleton {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
+    language dfa = matches' (regex_of_dfa' dfa dfa.start s n) := by
+  rw [aux h]
+  exact language_path_eq_regex_of_dfa
 
 /- From Yi-Siong's PR: https://github.com/leanprover-community/mathlib4/pull/35600 -/
 -- theorem matches'_sum_map0 {α : Type*} (L : List α) (f : α → RegularExpression Symbol) :
@@ -384,7 +400,6 @@ theorem language_union {dfa : DA.FinAcc State Symbol} :
     rw [hmem]
     exact hs
 
--- Brooke can work on this (Work on this last)
 omit [Fintype Symbol] in
 theorem language_sum {n : ℕ} {dfa : DA.FinAcc (Fin n) Symbol} :
     language dfa = (((dfa.accept.toFinset).sort (· ≤ ·)).map
@@ -398,14 +413,8 @@ theorem language_sum {n : ℕ} {dfa : DA.FinAcc (Fin n) Symbol} :
     | cons a l ih =>
       simp only [List.map_cons, List.sum_cons, Language.mem_add, List.mem_cons, ih]
       grind
-  -- rw [memsum]
   simp only [memsum, Finset.mem_sort, Set.mem_toFinset, mem_language]
   grind [Accepts]
-
-/- IsRegular.iff_regex in the situation where the there is a single accepting state -/
-theorem acc_singleton {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
-    language dfa = matches' (regex_of_dfa' dfa dfa.start s n) := by sorry
-
 
 theorem IsRegular.iff_regex [DecidableEq State] {l : Language Symbol} :
     l.IsRegular ↔ ∃ r : RegularExpression Symbol, l = matches' r := by
