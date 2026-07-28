@@ -228,24 +228,25 @@ section RegularExpression
 
 open RegularExpression
 
+
 -- Brooke can work on this (SECOND EASIEST)
 theorem IsRegular.iff_dfa' {l : Language Symbol} :
     l.IsRegular ↔ ∃ (n : ℕ), ∃ dfa : DA.FinAcc (Fin n) Symbol, language dfa = l := by
+  rw [IsRegular.iff_dfa] -- do this in front of constructor
   constructor
-  · intro h_reg
-    obtain ⟨State, h_fin, dfa_abs, rfl⟩ := IsRegular.iff_dfa.mp h_reg
+  · rintro ⟨State, h_fin, ⟨⟨flts, start⟩, acc⟩, rfl⟩
+    -- intro h_reg
+    -- obtain ⟨State, h_fin, dfa_abs, rfl⟩ := h_reg
     have : Fintype State := Fintype.ofFinite State
-    let n := Fintype.card State
-    let dfa := DFA.mk dfa_abs.tr dfa_abs.start dfa_abs.accept
-    let dfa2 := DFA.reindex (Fintype.equivFin State) (dfa)
-    let dfa3 := DA.FinAcc.mk {tr := dfa2.step, start := dfa2.start} dfa2.accept
-    use n, dfa3
-    exact DFA.accepts_reindex dfa (Fintype.equivFin State)
-    -- Use Fintype.equivFin State to get an equivalence of State with Fin n.
-    -- Construct dfa from dfa_abs using the equivalence
-  · intro h1
-    obtain ⟨n, dfa, h⟩ := h1
-    apply IsRegular.iff_dfa.mpr
+    -- let n := Fintype.card State
+    let dfa := DFA.mk flts.tr start acc -- mathlib
+    let dfa2 := DFA.reindex (Fintype.equivFin State) dfa -- mathlib on Fin n
+    let dfa3 := DA.FinAcc.mk {tr := dfa2.step, start := dfa2.start} dfa2.accept -- cslib on Fin n
+    -- use n, dfa3
+    exact ⟨Fintype.card State, dfa3, DFA.accepts_reindex dfa (Fintype.equivFin State)⟩
+    -- exact ⟨n, dfa3, DFA.accepts_reindex dfa (Fintype.equivFin State)⟩
+    -- exact DFA.accepts_reindex dfa (Fintype.equivFin State)
+  · intro ⟨n, dfa, h⟩
     exact ⟨Fin n, inferInstance, dfa, h⟩
 
 variable {State : Type*} [Finite State]
@@ -340,24 +341,19 @@ theorem language_union {dfa : DA.FinAcc State Symbol} :
 omit [Fintype Symbol] in
 theorem language_sum {n : ℕ} {dfa : DA.FinAcc (Fin n) Symbol} :
     language dfa = (((dfa.accept.toFinset).sort (· ≤ ·)).map
-    (fun s => language {dfa with accept := {s}})).sum := by
+    (fun s ↦ language {dfa with accept := {s}})).sum := by
   ext xs
   simp only [mem_language]
-  have memsum (l : List (Fin n)) : xs ∈ (l.map (fun s => language {dfa with accept := {s}})).sum
+  have memsum (l : List (Fin n)) : xs ∈ (l.map (fun s ↦ language {dfa with accept := {s}})).sum
   ↔ ∃ s ∈ l, xs ∈ language {dfa with accept := {s}} := by
     induction l with
-    | nil =>
-      simp
+    | nil => simp
     | cons a l ih =>
       simp only [List.map_cons, List.sum_cons, Language.mem_add, List.mem_cons, ih]
       grind
-  rw [memsum]
-  simp only [Finset.mem_sort, Set.mem_toFinset, mem_language]
+  -- rw [memsum]
+  simp only [memsum, Finset.mem_sort, Set.mem_toFinset, mem_language]
   grind [Accepts]
-
-
-
-
 
 /- IsRegular.iff_regex in the situation where the there is a single accepting state -/
 omit [Finite State] [Fintype Symbol] in
