@@ -349,8 +349,12 @@ theorem language_path_eq_regex_of_dfa {n k : ℕ} {i j : Fin n} {dfa : DA.FinAcc
     sorry
 
 -- Brooke can work on this (Easiest)
+omit [Fintype Symbol] in
 lemma aux {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
-    language dfa = language (Path_of_FLTS.mk dfa.toFLTS dfa.start s n) := by sorry
+    language dfa = language (Path_of_FLTS.mk dfa.toFLTS dfa.start s n) := by
+    ext xs
+    simp only [mem_language, Accepts, Fin.is_lt, implies_true, and_true]
+    grind
 
 /- IsRegular.iff_regex in the situation where the there is a single accepting state -/
 theorem acc_singleton {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
