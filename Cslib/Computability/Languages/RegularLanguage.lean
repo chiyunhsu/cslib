@@ -20,6 +20,7 @@ public import Mathlib.Data.Set.Card
 
 public import Mathlib.Computability.NFA
 public import Mathlib.Computability.EpsilonNFA
+public import Cslib.Computability.Languages.RegularExpressions
 
 /-!
 # Regular languages
@@ -279,19 +280,19 @@ noncomputable def regex_of_dfa (dfa : DA.FinAcc State Symbol)
         regex_of_dfa dfa i kFin k * (regex_of_dfa dfa kFin kFin k).star *
           regex_of_dfa dfa kFin j k
 
-noncomputable def regex_of_dfa' {n : ℕ} (da : DA (Fin n) Symbol)
+noncomputable def regex_of_da' {n : ℕ} (da : DA (Fin n) Symbol)
     (i j : Fin n) : ℕ → RegularExpression Symbol
   | 0 =>
     let chars := (Finset.univ.filter
       (fun x : Symbol ↦ da.tr i x = j)).toList.map RegularExpression.char
     if i = j then 1 + chars.sum else chars.sum
   | k + 1 =>
-    if h : k ≥ n then regex_of_dfa' da i j k
+    if h : k ≥ n then regex_of_da' da i j k
     else
       let kFin : Fin n := ⟨k, by omega⟩
-      regex_of_dfa' da i j k +
-        regex_of_dfa' da i kFin k * (regex_of_dfa' da kFin kFin k).star *
-          regex_of_dfa' da kFin j k
+      regex_of_da' da i j k +
+        regex_of_da' da i kFin k * (regex_of_da' da kFin kFin k).star *
+          regex_of_da' da kFin j k
 
 #check εNFA.IsPath
 -- Mimicing the definition of NFA.Path. Path s xs is the type of
@@ -309,8 +310,8 @@ def Path_supp (flts : FLTS State Symbol) : State → List Symbol → Set State
 -- When cardinality of path_supp = 2, then length xs = 3 or above.
 -- When cardinality of path_supp = n > 0, then length xs ≥ n + 1 and assume all values.
 -- Brooke can work on this (Second Easiest)
-lemma empty_or_char_of_path_supp_empty {flts : FLTS State Symbol} {s : State} {xs : List Symbol}
-    (h : Path_supp flts s xs = ∅) : xs = [] ∨ (∃ a : Symbol, xs = [a]) :=
+lemma empty_or_char_of_path_supp_empty {flts : FLTS State Symbol} {s : State} {xs : List Symbol} :
+    Path_supp flts s xs = ∅ ↔ xs = [] ∨ (∃ a : Symbol, xs = [a]) :=
   by sorry
 
 -- /-- An `Acceptor` is a machine that recognises strings (lists of symbols in an alphabet). -/
@@ -332,21 +333,40 @@ instance {n : ℕ} : Acceptor (Path_of_FLTS n Symbol) Symbol where
   Accepts (a : Path_of_FLTS n Symbol) (xs : List Symbol) :=
     a.mtr a.start xs = a.finish ∧ (∀ i ∈ Path_supp a.toFLTS a.start xs, i < a.bound)
 
+lemma set_aux {α : Type*} (A : Set α) : (∀ (i : α), i ∉ A) ↔ A = ∅ := by sorry
+
 theorem language_path_eq_regex_of_dfa {n k : ℕ} {i j : Fin n} {da : DA (Fin n) Symbol} :
-    language (Path_of_FLTS.mk da.toFLTS i j k) = matches' (regex_of_dfa' da i j k) := by
+    language (Path_of_FLTS.mk da.toFLTS i j k) = matches' (regex_of_da' da i j k) := by
   ext xs
   simp only [mem_language, Accepts]
-  induction k with
+  induction k generalizing i j with
   | zero =>
-    simp only [not_lt_zero, imp_false, regex_of_dfa']
+    simp only [not_lt_zero, imp_false, regex_of_da']
     split_ifs with heq
     · -- The case of i = j, k = 0
-      rw [heq, matches'_add]
+      rw [heq, matches'_add, set_aux, empty_or_char_of_path_supp_empty]
+
+
       sorry
     · -- The case of i ≠ j, k = 0
       sorry
-  | succ =>
-    sorry
+  | succ k h =>
+    constructor
+    · rintro ⟨h_ends, h_path⟩
+      classical
+      rw [← rmatch_iff_matches']
+
+      sorry
+    · intro hxs
+      simp only [regex_of_da', ge_iff_le] at hxs
+      by_cases hk : n ≤ k
+      · simp only [hk, ↓reduceDIte] at hxs
+        rw [← h] at hxs
+        obtain ⟨h_ends, h_path⟩ := hxs
+        exact ⟨h_ends, fun i_1 => (fun hi_1 => lt_trans (h_path i_1 hi_1) (by norm_num))⟩
+      · simp only [hk, ↓reduceDIte, matches'] at hxs
+
+        sorry
 
 -- Brooke can work on this (Easiest)
 omit [Fintype Symbol] in
@@ -358,7 +378,7 @@ lemma aux {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept
 
 /- IsRegular.iff_regex in the situation where the there is a single accepting state -/
 theorem acc_singleton {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
-    language dfa = matches' (regex_of_dfa' dfa.toDA dfa.start s n) := by
+    language dfa = matches' (regex_of_da' dfa.toDA dfa.start s n) := by
   rw [aux h]
   exact language_path_eq_regex_of_dfa
 
@@ -430,7 +450,7 @@ theorem IsRegular.iff_regex {l : Language Symbol} :
   set acc_List : List (Fin n) := (dfa.accept.toFinset).sort (· ≤ ·) with h_acc
   rw [language_sum]
   let regex :=
-    (acc_List.map (fun i => regex_of_dfa' dfa.toDA (dfa.start) i n)).sum
+    (acc_List.map (fun i => regex_of_da' dfa.toDA (dfa.start) i n)).sum
   use regex
   simp only [matches'_sum, regex]
   apply congrArg
@@ -438,7 +458,7 @@ theorem IsRegular.iff_regex {l : Language Symbol} :
   simp only [map_inj_left, Function.comp_apply]
   suffices h :
     (fun s => language {dfa with accept := {s}}) =
-    (fun i => matches' (regex_of_dfa' dfa.toDA dfa.start i n)) by exact fun i hi ↦ congrFun h i
+    (fun i => matches' (regex_of_da' dfa.toDA dfa.start i n)) by exact fun i hi ↦ congrFun h i
   funext s
   exact acc_singleton rfl
 
