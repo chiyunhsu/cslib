@@ -8,6 +8,8 @@ module
 
 public import Mathlib.Computability.RegularExpressions
 
+namespace Cslib.Language
+
 open RegularExpression
 
 variable {α : Type*}
@@ -30,11 +32,11 @@ theorem mem_star_matches'_iff (P : RegularExpression α) (x : List α) :
     x ∈ (star P).matches' ↔ ∃ S : List (List α), x
           = S.flatten ∧ ∀ t ∈ S, t ≠ [] ∧ t ∈ P.matches' := by sorry
 
-theorem mem_sum_matches'_iff (P Q : RegularExpression α) (x : List α) :
+theorem mem_add_matches'_iff (P Q : RegularExpression α) (x : List α) :
     x ∈ (P + Q).matches' ↔ x ∈ P.matches' ∨ x ∈ Q.matches' := by
   classical
   repeat rw [← rmatch_iff_matches']
   rw [add_rmatch_iff]
 
-theorem mem_prod_matches'_iff (P Q : RegularExpression α) (x : List α) :
+theorem mem_mul_matches'_iff (P Q : RegularExpression α) (x : List α) :
     x ∈ (P * Q).matches' ↔ ∃ y z, x = y ++ z ∧ y ∈ P.matches' ∧ z ∈ Q.matches' := by sorry

@@ -273,7 +273,7 @@ noncomputable def regex_of_dfa (dfa : DA.FinAcc State Symbol)
       (fun x : Symbol ↦ dfa.tr (e.symm i) x = e.symm j)).toList.map RegularExpression.char
     if i = j then 1 + chars.sum else chars.sum
   | k + 1 =>
-    if h : k ≥ Fintype.card State then regex_of_dfa dfa i j k
+    if h : Fintype.card State ≤ k then regex_of_dfa dfa i j k
     else
       let kFin : Fin (Fintype.card State) := ⟨k, by omega⟩
       regex_of_dfa dfa i j k +
@@ -287,7 +287,7 @@ noncomputable def regex_of_da' {n : ℕ} (da : DA (Fin n) Symbol)
       (fun x : Symbol ↦ da.tr i x = j)).toList.map RegularExpression.char
     if i = j then 1 + chars.sum else chars.sum
   | k + 1 =>
-    if h : k ≥ n then regex_of_da' da i j k
+    if h : n ≤ k then regex_of_da' da i j k
     else
       let kFin : Fin n := ⟨k, by omega⟩
       regex_of_da' da i j k +
@@ -345,28 +345,20 @@ theorem language_path_eq_regex_of_dfa {n k : ℕ} {i j : Fin n} {da : DA (Fin n)
     split_ifs with heq
     · -- The case of i = j, k = 0
       rw [heq, matches'_add, set_aux, empty_or_char_of_path_supp_empty]
-
-
       sorry
     · -- The case of i ≠ j, k = 0
       sorry
   | succ k h =>
-    constructor
-    · rintro ⟨h_ends, h_path⟩
-      classical
-      rw [← rmatch_iff_matches']
-
-      sorry
-    · intro hxs
-      simp only [regex_of_da', ge_iff_le] at hxs
-      by_cases hk : n ≤ k
-      · simp only [hk, ↓reduceDIte] at hxs
-        rw [← h] at hxs
-        obtain ⟨h_ends, h_path⟩ := hxs
-        exact ⟨h_ends, fun i_1 => (fun hi_1 => lt_trans (h_path i_1 hi_1) (by norm_num))⟩
-      · simp only [hk, ↓reduceDIte, matches'] at hxs
-
-        sorry
+    simp only [regex_of_da']
+    split_ifs with hk
+    · rw [← h]
+      exact ⟨fun ⟨h_ends, h_path⟩
+        => ⟨h_ends, fun i_1 => (fun hi_1 => lt_of_lt_of_le (by norm_num) hk)⟩,
+             fun ⟨h_ends, h_path⟩
+        => ⟨h_ends, fun i_1 => (fun hi_1 => lt_trans (h_path i_1 hi_1) (by norm_num))⟩⟩
+    · constructor
+      · sorry
+      · sorry
 
 -- Brooke can work on this (Easiest)
 omit [Fintype Symbol] in
