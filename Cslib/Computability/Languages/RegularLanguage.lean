@@ -279,7 +279,6 @@ regex_of_dfa i k k concat (regex_of_dfa k k k)^* concat regex_of_dfa k j k.
 --       regex_of_dfa dfa i j k +
 --         regex_of_dfa dfa i kFin k * (regex_of_dfa dfa kFin kFin k).star *
 --           regex_of_dfa dfa kFin j k
-
 noncomputable def regex_of_flts [Fintype Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol)
     (i j : Fin n) : ℕ → RegularExpression Symbol
   | 0 =>
@@ -293,6 +292,17 @@ noncomputable def regex_of_flts [Fintype Symbol] {n : ℕ} (flts : FLTS (Fin n) 
       regex_of_flts flts i j k +
         regex_of_flts flts i kFin k * (regex_of_flts flts kFin kFin k).star *
           regex_of_flts flts kFin j k
+
+lemma regex1 [Fintype Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (k : Fin n) :
+    (regex_of_flts flts k k (k + 1)).matches' = ((regex_of_flts flts k k k).matches')∗ := by sorry
+
+lemma regex2 [Fintype Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (i k : Fin n) :
+    (regex_of_flts flts i k (k + 1)).matches' =
+    ((regex_of_flts flts i k k) * (regex_of_flts flts k k k + 1)).matches' := by sorry
+
+lemma regex3 [Fintype Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (j k : Fin n) :
+    (regex_of_flts flts k j (k + 1)).matches' =
+    ((regex_of_flts flts k k (k + 1)) * (regex_of_flts flts k j k)).matches' := by sorry
 
 #check εNFA.IsPath
 -- Mimicing the definition of NFA.Path. Path s xs is the type of
@@ -349,9 +359,19 @@ instance {n : ℕ} : Acceptor (Path_of_FLTS n Symbol) Symbol where
   Accepts (a : Path_of_FLTS n Symbol) (xs : List Symbol) :=
     a.mtr a.start xs = a.finish ∧ (∀ i ∈ Path_supp a.toFLTS a.start xs, i < a.bound)
 
-def path_head {n : ℕ} (da : DA (Fin n) Symbol) (xs : List Symbol) (l : Fin n) : List Symbol := sorry
+-- The function sending a string to its head which first ends at state `t`
+def path_head {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) : List Symbol → List Symbol
+  | [] => []
+  | a :: x => if flts.tr s a = t then [a] else a :: path_head flts (flts.tr s a) t x
 
-lemma set_aux {α : Type*} (A : Set α) : (∀ (i : α), i ∉ A) ↔ A = ∅ := by sorry
+lemma isPrefix_path_head {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
+    IsPrefix (path_head flts s t xs) xs := by sorry
+
+def path_tail {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
+    List Symbol := by sorry
+
+lemma set_aux {α : Type*} (A : Set α) : (∀ (i : α), i ∉ A) ↔ A = ∅ := by
+  sorry
 
 theorem language_path_eq_regex_of_dfa [Fintype Symbol] {n k : ℕ} {i j : Fin n}
     {flts : FLTS (Fin n) Symbol} :
@@ -374,7 +394,7 @@ theorem language_path_eq_regex_of_dfa [Fintype Symbol] {n k : ℕ} {i j : Fin n}
     · rw [← h]
       exact ⟨fun ⟨h_ends, h_path⟩ => ⟨h_ends, fun _ _ => lt_of_lt_of_le (by norm_num) hk⟩,
         fun ⟨h_ends, h_path⟩ => ⟨h_ends, fun l hl => lt_trans (h_path l hl) (by norm_num)⟩⟩
-    · rw [mem_add_matches'_iff, mem_mul_matches'_iff]
+    · rw [mem_add_matches'_iff]
       constructor
       · intro ⟨h_ends, h_path⟩
         by_cases h_bound :  ∀ l ∈ Path_supp flts i xs, l < k
@@ -385,9 +405,9 @@ theorem language_path_eq_regex_of_dfa [Fintype Symbol] {n k : ℕ} {i j : Fin n}
           rcases h_bound with ⟨l, ⟨hl1, hl2⟩⟩
           have hl : l = k + 1 := by sorry
           sorry
-      · intro hxs
-
-        sorry
+      · rintro (h1 | h2)
+        · grind [h.mpr h1]
+        · sorry
 
 -- Brooke can work on this (Easiest)
 -- omit [Fintype Symbol] in
