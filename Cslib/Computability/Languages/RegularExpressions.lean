@@ -16,6 +16,7 @@ open RegularExpression
 
 variable {α : Type*}
 
+-- Brooke can do all the lemmas here (second)
 theorem mem_zero_matches'_iff (x : List α) :
     x ∈ (0 : RegularExpression α).matches' ↔ False := by
   classical
@@ -43,6 +44,7 @@ theorem mem_add_matches'_iff (P Q : RegularExpression α) (x : List α) :
 theorem mem_mul_matches'_iff (P Q : RegularExpression α) (x : List α) :
     x ∈ (P * Q).matches' ↔ ∃ y z, x = y ++ z ∧ y ∈ P.matches' ∧ z ∈ Q.matches' := by sorry
 
+-- Brooke can work on this lemma (third)
 theorem mem_sum_matches'_iff (L : List (RegularExpression α)) (x : List α) :
     x ∈ (L.sum).matches' ↔ ∃ P ∈ L, x ∈ P.matches' := by sorry
 
