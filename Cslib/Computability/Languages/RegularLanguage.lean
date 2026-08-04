@@ -352,10 +352,8 @@ theorem language_path_eq_regex_of_dfa {n k : ℕ} {i j : Fin n} {da : DA (Fin n)
     simp only [regex_of_da']
     split_ifs with hk
     · rw [← h]
-      exact ⟨fun ⟨h_ends, h_path⟩
-        => ⟨h_ends, fun i_1 => (fun hi_1 => lt_of_lt_of_le (by norm_num) hk)⟩,
-             fun ⟨h_ends, h_path⟩
-        => ⟨h_ends, fun i_1 => (fun hi_1 => lt_trans (h_path i_1 hi_1) (by norm_num))⟩⟩
+      exact ⟨fun ⟨h_ends, h_path⟩ => ⟨h_ends, fun _ _ => lt_of_lt_of_le (by norm_num) hk⟩,
+        fun ⟨h_ends, h_path⟩ => ⟨h_ends, fun l hl => lt_trans (h_path l hl) (by norm_num)⟩⟩
     · constructor
       · sorry
       · sorry
