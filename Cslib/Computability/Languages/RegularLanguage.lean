@@ -323,7 +323,8 @@ lemma empty_or_char_of_path_supp_empty {flts : FLTS State Symbol} {s : State} {x
         unfold Path_supp
         grind
       grind
-  · sorry
+  · unfold Path_supp
+    grind
 
 -- /-- An `Acceptor` is a machine that recognises strings (lists of symbols in an alphabet). -/
 -- class Acceptor (A : Type u) (Symbol : outParam (Type v)) where
