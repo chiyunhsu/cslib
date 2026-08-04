@@ -301,8 +301,7 @@ noncomputable def regex_of_da' [Fintype Symbol] {n : ℕ} (da : DA (Fin n) Symbo
 --   | cons (s u : State) (a : Symbol) (x : List Symbol) : Path (flts.tr s a) x → Path s (a :: x)
 
 def Path_supp (flts : FLTS State Symbol) : State → List Symbol → Set State
-  | _, [] => ∅
-  | _, [_] => ∅
+  | _, [] | _,  [_] => ∅
   | s, a :: x => {flts.tr s a} ∪ Path_supp flts (flts.tr s a) x
 
 -- When cardinality of path_supp = 0, then length xs = 0 or 1.
@@ -313,18 +312,23 @@ def Path_supp (flts : FLTS State Symbol) : State → List Symbol → Set State
 -- omit [Finite State] [Fintype Symbol] in
 lemma empty_or_char_of_path_supp_empty {flts : FLTS State Symbol} {s : State} {xs : List Symbol} :
     Path_supp flts s xs = ∅ ↔ xs = [] ∨ (∃ a : Symbol, xs = [a]) := by
-  constructor
-  · intro h
-    rcases xs with _ | ⟨x, _ | ⟨y, rest⟩⟩
-    · grind
-    · grind
-    · simp
-      have h1 : flts.tr s x ∈ Path_supp flts s (x :: y :: rest) := by
-        unfold Path_supp
-        grind
-      grind
-  · unfold Path_supp
+  match xs with
+  | [] | [_] => grind [Path_supp]
+  | x :: y :: ys =>
+    have h1 : flts.tr s x ∈ Path_supp flts s (x :: y :: ys) := by grind [Path_supp]
     grind
+  -- constructor
+  -- · intro h
+  --   rcases xs with _ | ⟨x, _ | ⟨y, rest⟩⟩
+  --   · grind
+  --   · grind
+  --   · simp
+  --     have h1 : flts.tr s x ∈ Path_supp flts s (x :: y :: rest) := by
+  --       unfold Path_supp
+  --       grind
+  --     grind
+  -- · unfold Path_supp
+  --   grind
 
 -- /-- An `Acceptor` is a machine that recognises strings (lists of symbols in an alphabet). -/
 -- class Acceptor (A : Type u) (Symbol : outParam (Type v)) where
@@ -368,17 +372,32 @@ theorem language_path_eq_regex_of_dfa [Fintype Symbol] {n k : ℕ} {i j : Fin n}
     · rw [← h]
       exact ⟨fun ⟨h_ends, h_path⟩ => ⟨h_ends, fun _ _ => lt_of_lt_of_le (by norm_num) hk⟩,
         fun ⟨h_ends, h_path⟩ => ⟨h_ends, fun l hl => lt_trans (h_path l hl) (by norm_num)⟩⟩
-    · constructor
-      · sorry
-      · sorry
+    · rw [mem_add_matches'_iff, mem_mul_matches'_iff]
+      constructor
+      · intro ⟨h_ends, h_path⟩
+        by_cases h_bound :  ∀ l ∈ Path_supp da.toFLTS i xs, l < k
+        · -- Easy
+          sorry
+        · right
+          push Not at h_bound
+          rcases h_bound with ⟨l, ⟨hl1, hl2⟩⟩
+          have hl : l = k + 1 := by sorry
+          sorry
+      · intro hxs
+
+        sorry
 
 -- Brooke can work on this (Easiest)
 -- omit [Fintype Symbol] in
 lemma aux {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
     language dfa = language (Path_of_FLTS.mk dfa.toFLTS dfa.start s n) := by
-    ext xs
-    simp only [mem_language, Accepts, Fin.is_lt, implies_true, and_true]
-    grind
+  ext xs
+  simp only [mem_language, Accepts]
+  grind
+    -- -- Wrong indents
+    -- ext xs
+    -- simp only [mem_language, Accepts, Fin.is_lt, implies_true, and_true]
+    -- grind
 
 /- IsRegular.iff_regex in the situation where the there is a single accepting state -/
 theorem acc_singleton [Fintype Symbol] {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol}
