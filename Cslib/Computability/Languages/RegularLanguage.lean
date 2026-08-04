@@ -310,9 +310,20 @@ def Path_supp (flts : FLTS State Symbol) : State → List Symbol → Set State
 -- When cardinality of path_supp = 2, then length xs = 3 or above.
 -- When cardinality of path_supp = n > 0, then length xs ≥ n + 1 and assume all values.
 -- Brooke can work on this (Second Easiest)
+omit [Finite State] [Fintype Symbol] in
 lemma empty_or_char_of_path_supp_empty {flts : FLTS State Symbol} {s : State} {xs : List Symbol} :
-    Path_supp flts s xs = ∅ ↔ xs = [] ∨ (∃ a : Symbol, xs = [a]) :=
-  by sorry
+    Path_supp flts s xs = ∅ ↔ xs = [] ∨ (∃ a : Symbol, xs = [a]) := by
+  constructor
+  · intro h
+    rcases xs with _ | ⟨x, _ | ⟨y, rest⟩⟩
+    · grind
+    · grind
+    · simp
+      have h1 : flts.tr s x ∈ Path_supp flts s (x :: y :: rest) := by
+        unfold Path_supp
+        grind
+      grind
+  · sorry
 
 -- /-- An `Acceptor` is a machine that recognises strings (lists of symbols in an alphabet). -/
 -- class Acceptor (A : Type u) (Symbol : outParam (Type v)) where
