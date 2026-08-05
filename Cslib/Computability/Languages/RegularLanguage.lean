@@ -314,7 +314,7 @@ def path_tail {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Sy
 
 -- Brooke can do this (first)
 lemma set_aux {α : Type*} (A : Set α) : (∀ (i : α), i ∉ A) ↔ A = ∅ := by
-  sorry
+  grind
 
 theorem language_path_eq_regex [Fintype Symbol] {n k : ℕ} {i j : Fin n}
     {flts : FLTS (Fin n) Symbol} :
