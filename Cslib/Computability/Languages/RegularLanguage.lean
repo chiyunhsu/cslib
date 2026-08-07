@@ -325,7 +325,8 @@ lemma isSuffix_splitLast [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Sym
   | nil => simp [splitLast]
   | cons a xs ih => sorry
 
--- Add the analogous definitions and lemmas as below
+-- Add the analogous lemmas for splitLast like the lemmas of splitFirst below
+-- Statements first. Work on the proof only if you have time.
 -- Brooke can work on this (fifth)
 
 lemma path1 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
@@ -349,7 +350,9 @@ def splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) : List Symbo
 -- Brooke can work on this lemma (fourth)
 lemma isPrefix_splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
     IsPrefix (splitFirst flts s t xs) xs := by
-  sorry
+  induction xs with
+  | nil => simp [splitFirst]
+  | cons a xs ih => sorry
 
 noncomputable def splitFirstCompl {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n)
     (xs : List Symbol) : List Symbol := (isPrefix_splitFirst flts s t xs).choose
