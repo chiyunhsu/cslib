@@ -17,6 +17,7 @@ open RegularExpression
 variable {α : Type*}
 
 -- Brooke can do all the lemmas here (second)
+-- Pause on doing this as we might not need these lemmas anymore.
 theorem mem_zero_matches'_iff (x : List α) :
     x ∈ (0 : RegularExpression α).matches' ↔ False := by
   classical

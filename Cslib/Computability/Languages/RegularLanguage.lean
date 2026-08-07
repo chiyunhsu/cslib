@@ -263,54 +263,148 @@ noncomputable def Regex [Fintype Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol)
       let kFin : Fin n := ⟨k, by omega⟩
       Regex flts i j k + Regex flts i kFin k * (Regex flts kFin kFin k).star * Regex flts kFin j k
 
-lemma regex1 [Fintype Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (k : Fin n) :
-    (Regex flts k k k + 1).matches' = ((Regex flts k k k).matches')∗ := by sorry
-
-lemma regex2 [Fintype Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (i k : Fin n) :
-    (Regex flts i k k + 1).matches' =
-    ((Regex flts i k k) * (Regex flts k k k + 1)).matches' := by sorry
-
-lemma regex3 [Fintype Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (j k : Fin n) :
-    (Regex flts k j k + 1).matches' =
-    ((Regex flts k k k + 1) * (Regex flts k j k)).matches' := by sorry
-
 #check εNFA.IsPath
 -- Mimicing the definition of NFA.Path. Path s xs is the type of
 -- inductive Path : State → List Symbol → Type (max u_1 u_2)
 --   | nil (s : State) : Path s []
 --   | cons (s u : State) (a : Symbol) (x : List Symbol) : Path (flts.tr s a) x → Path s (a :: x)
 
-def Path_supp (flts : FLTS State Symbol) : State → List Symbol → Set State
+def PathSupp {State : Type*} (flts : FLTS State Symbol) : State → List Symbol → Set State
   | _, [] | _,  [_] => ∅
-  | s, a :: x => {flts.tr s a} ∪ Path_supp flts (flts.tr s a) x
+  | s, a :: x => {flts.tr s a} ∪ PathSupp flts (flts.tr s a) x
 
-lemma empty_or_char_of_path_supp_empty {State : Type*} {flts : FLTS State Symbol} {s : State}
-    {xs : List Symbol} : Path_supp flts s xs = ∅ ↔ xs = [] ∨ (∃ a : Symbol, xs = [a]) := by
+lemma pathSupp_empty_iff_empty_or_char {State : Type*} {flts : FLTS State Symbol} {s : State}
+    {xs : List Symbol} : PathSupp flts s xs = ∅ ↔ xs = [] ∨ (∃ a : Symbol, xs = [a]) := by
   match xs with
-  | [] | [_] => grind [Path_supp]
+  | [] | [_] => grind [PathSupp]
   | x :: y :: ys =>
-    have h1 : flts.tr s x ∈ Path_supp flts s (x :: y :: ys) := by grind [Path_supp]
+    have h1 : flts.tr s x ∈ PathSupp flts s (x :: y :: ys) := by grind [PathSupp]
     grind
 
-structure Path_of_FLTS (n : ℕ) (Symbol : Type*) extends FLTS (Fin n) Symbol where
+lemma pathSupp_head {State : Type*} {flts : FLTS State Symbol} {s : State}
+    {a : Symbol} {xs : List Symbol} (hxs : xs ≠ []) :
+    PathSupp flts s (a :: xs) = {flts.tr s a} ∪ PathSupp flts (flts.tr s a) xs := by
+  grind [PathSupp]
+
+lemma pathSupp_append {State : Type*} {flts : FLTS State Symbol} {s : State}
+    {xs ys : List Symbol} (hxs : xs ≠ [] ∧ ys ≠ []) :
+    PathSupp flts s (xs ++ ys) =
+    {flts.mtr s xs} ∪ PathSupp flts s xs ∪ PathSupp flts (flts.mtr s xs) ys := by
+  induction xs generalizing s with
+  | nil => grind [PathSupp]
+  | cons a xs ih =>
+  sorry
+
+structure BoundedPath (n : ℕ) (Symbol : Type*) extends FLTS (Fin n) Symbol where
   start : Fin n
   finish : Fin n
   bound : ℕ
 
-instance {n : ℕ} : Acceptor (Path_of_FLTS n Symbol) Symbol where
-  Accepts (a : Path_of_FLTS n Symbol) (xs : List Symbol) :=
-    a.mtr a.start xs = a.finish ∧ (∀ i ∈ Path_supp a.toFLTS a.start xs, i < a.bound)
+instance {n : ℕ} : Acceptor (BoundedPath n Symbol) Symbol where
+  Accepts (a : BoundedPath n Symbol) (xs : List Symbol) :=
+    a.mtr a.start xs = a.finish ∧ (∀ i ∈ PathSupp a.toFLTS a.start xs, i < a.bound)
 
--- The function sending a string to its head which first ends at state `t`
-def path_head {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) : List Symbol → List Symbol
+-- This is the original aux
+lemma language_path_eq_dfa {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j : Fin n) {k : ℕ} (hk : n ≤ k) :
+    language (BoundedPath.mk flts i j k) =
+    language (DA.FinAcc.mk {tr := flts.tr, start := i} {j}) := by
+  ext xs
+  simp only [mem_language, Accepts]
+  grind
+
+-- The function sending a string to its shortest suffix which starts at state `t`.
+def splitLast [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) :
+    List Symbol → List Symbol
   | [] => []
-  | a :: x => if flts.tr s a = t then [a] else a :: path_head flts (flts.tr s a) t x
+  | a :: x => if (splitLast flts (flts.tr s a) t x = x) ∧ flts.tr s a ≠ t then a :: x
+  else splitLast flts (flts.tr s a) t x
 
-lemma isPrefix_path_head {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
-    IsPrefix (path_head flts s t xs) xs := by sorry
+lemma isSuffix_splitLast [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
+    IsSuffix (splitLast flts s t xs) xs := by
+  induction xs with
+  | nil => simp [splitLast]
+  | cons a xs ih => sorry
 
-def path_tail {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
-    List Symbol := by sorry
+-- Add the analogous definitions and lemmas as below
+-- Brooke can work on this (fifth)
+
+lemma path1 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
+    language (BoundedPath.mk flts i j (k + 1)) = language (BoundedPath.mk flts i j k) +
+    (language (BoundedPath.mk flts i k (k + 1)) * language (BoundedPath.mk flts k j k)) := by
+  ext xs
+  rw [Language.mem_add, Language.mem_mul]
+  constructor
+  · intro h
+    by_cases h' : xs ∈ language (BoundedPath.mk flts i j k)
+    · left; exact h'
+    right
+    sorry
+  · sorry
+
+-- The function sending a string to its shortest prefix which ends at state `t`.
+def splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) : List Symbol → List Symbol
+  | [] => []
+  | a :: x => if flts.tr s a = t then [a] else a :: splitFirst flts (flts.tr s a) t x
+
+-- Brooke can work on this lemma (fourth)
+lemma isPrefix_splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
+    IsPrefix (splitFirst flts s t xs) xs := by
+  sorry
+
+noncomputable def splitFirstCompl {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n)
+    (xs : List Symbol) : List Symbol := (isPrefix_splitFirst flts s t xs).choose
+
+lemma splitFirst_append {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
+    splitFirst flts s t xs ++ splitFirstCompl flts s t xs = xs := by
+  grind [splitFirst, splitFirstCompl]
+
+lemma splitFirst_mem {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
+    (h : xs ∈ (language (BoundedPath.mk flts i k (k.val + 1)))) :
+    splitFirst flts i k xs ∈ language (BoundedPath.mk flts i k k.val) := by
+  induction xs generalizing i with
+  | nil => simpa [Accepts, splitFirst, PathSupp] using h
+  | cons a xs ih =>
+  simp only [mem_language, Accepts, Order.lt_add_one_iff, splitFirst] at ih h ⊢
+  obtain ⟨h1, h2⟩ := h
+  split_ifs with ha
+  · refine ⟨by grind, ?_⟩
+    have : PathSupp flts i [a] = ∅ := by grind [PathSupp]
+    simp [this]
+  · have : flts.mtr i (a :: splitFirst flts (flts.tr i a) k xs) =
+      flts.mtr (flts.tr i a) (splitFirst flts (flts.tr i a) k xs) := by grind
+    by_cases hxs : xs = []
+    · grind
+    rw [pathSupp_head hxs] at h2
+    by_cases hPath : splitFirst flts (flts.tr i a) k xs = []
+    · grind
+    rw [this, pathSupp_head hPath]
+    grind
+
+lemma splitFirstCompl_mem {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
+    (h : xs ∈ (language (BoundedPath.mk flts i k (k.val + 1)))) :
+    splitFirstCompl flts i ⟨k, by omega⟩ xs ∈ language (BoundedPath.mk flts k k (k.val + 1)) := by
+  sorry
+
+lemma path2 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i k : Fin n) :
+    language (BoundedPath.mk flts i k (k + 1)) =
+    language (BoundedPath.mk flts i k k) * language (BoundedPath.mk flts k k (k + 1)) := by
+  ext xs
+  rw [Language.mem_mul]
+  constructor
+  · intro h
+    use splitFirst flts i k xs, splitFirst_mem h,
+      splitFirstCompl flts i k xs, splitFirstCompl_mem h,
+      splitFirst_append flts _ _ _
+  · simp only [mem_language, Accepts]
+    intro ⟨ys, ⟨⟨hys, hsuppys⟩, ⟨zs, ⟨⟨hzs, hsuppzs⟩, happend⟩⟩⟩⟩
+    refine ⟨by grind, ?_⟩
+    by_cases ys = [] ∨ zs = []
+    · grind
+    grind [pathSupp_append]
+
+lemma path3 {n : ℕ} (flts : FLTS (Fin n) Symbol) (k : Fin n) :
+    language (BoundedPath.mk flts k k (k + 1)) = (language (BoundedPath.mk flts k k k))∗ := by
+  sorry
 
 -- Brooke can do this (first)
 lemma set_aux {α : Type*} (A : Set α) : (∀ (i : α), i ∉ A) ↔ A = ∅ := by
@@ -318,44 +412,29 @@ lemma set_aux {α : Type*} (A : Set α) : (∀ (i : α), i ∉ A) ↔ A = ∅ :=
 
 theorem language_path_eq_regex [Fintype Symbol] {n k : ℕ} {i j : Fin n}
     {flts : FLTS (Fin n) Symbol} :
-    language (Path_of_FLTS.mk flts i j k) = matches' (Regex flts i j k) := by
-  ext xs
-  simp only [mem_language, Accepts]
+    language (BoundedPath.mk flts i j k) = matches' (Regex flts i j k) := by
   induction k generalizing i j with
   | zero =>
+    ext xs
+    simp only [mem_language, Accepts]
     simp only [not_lt_zero, imp_false, Regex]
     split_ifs with heq
     · -- The case of i = j, k = 0
-      rw [set_aux, mem_add_matches'_iff, mem_sum_matches'_iff, empty_or_char_of_path_supp_empty]
+      rw [set_aux, mem_add_matches'_iff, mem_sum_matches'_iff, pathSupp_empty_iff_empty_or_char]
       aesop
     · -- The case of i ≠ j, k = 0
-      rw [set_aux, mem_sum_matches'_iff, empty_or_char_of_path_supp_empty]
+      rw [set_aux, mem_sum_matches'_iff, pathSupp_empty_iff_empty_or_char]
       aesop
-  | succ k h =>
+  | succ k ih =>
     simp only [Regex]
     split_ifs with hk
-    · rw [← h]
-      exact ⟨fun ⟨h_ends, h_path⟩ => ⟨h_ends, fun _ _ => lt_of_lt_of_le (by norm_num) hk⟩,
-        fun ⟨h_ends, h_path⟩ => ⟨h_ends, fun l hl => lt_trans (h_path l hl) (by norm_num)⟩⟩
-    · rw [mem_add_matches'_iff]
-      constructor
-      · intro ⟨h_ends, h_path⟩
-        by_cases h_bound : ∀ l ∈ Path_supp flts i xs, l < k
-        · -- Brooke can work on this (Last)
-          -- Given xs in regex i j k + 1, if xs does not go through k, then xs is in regex i j k.
-          left
-          sorry
-        · right
-          push Not at h_bound
-          rcases h_bound with ⟨l, ⟨hl1, hl2⟩⟩
-          have hl : l = k + 1 := by sorry
-          sorry
-      · rintro (h1 | h2)
-        · grind [h.mpr h1]
-        · sorry
+    · rw [← ih, language_path_eq_dfa flts i j hk, language_path_eq_dfa flts i j (by omega)]
+    rw [path1 (k := ⟨k, by omega⟩), path2, path3]
+    simp only [matches'_add, matches'_mul, matches'_star]
+    grind
 
 lemma aux {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
-    language dfa = language (Path_of_FLTS.mk dfa.toFLTS dfa.start s n) := by
+    language dfa = language (BoundedPath.mk dfa.toFLTS dfa.start s n) := by
   ext xs
   simp only [mem_language, Accepts]
   grind
