@@ -47,6 +47,11 @@ theorem mem_mul_matches'_iff (P Q : RegularExpression α) (x : List α) :
 
 -- Brooke can work on this lemma (third)
 theorem mem_sum_matches'_iff (L : List (RegularExpression α)) (x : List α) :
-    x ∈ (L.sum).matches' ↔ ∃ P ∈ L, x ∈ P.matches' := by sorry
+    x ∈ (L.sum).matches' ↔ ∃ P ∈ L, x ∈ P.matches' := by
+    induction L with
+    | nil => simp
+    | cons head tail ih =>
+      simp only [List.sum_cons, matches', List.mem_cons, exists_eq_or_imp, List.sum_cons,
+      Language.mem_add, ih]
 
 end Cslib.Language
