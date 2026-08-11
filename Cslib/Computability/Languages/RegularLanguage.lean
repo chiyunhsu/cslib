@@ -350,9 +350,9 @@ def splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) : List Symbo
 -- Brooke can work on this lemma (fourth)
 lemma isPrefix_splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
     IsPrefix (splitFirst flts s t xs) xs := by
-  induction xs with
+  induction xs generalizing s with
   | nil => simp [splitFirst]
-  | cons a xs ih => sorry
+  | cons a xs ih => grind [splitFirst]
 
 noncomputable def splitFirstCompl {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n)
     (xs : List Symbol) : List Symbol := (isPrefix_splitFirst flts s t xs).choose

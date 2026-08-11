@@ -51,7 +51,6 @@ theorem mem_sum_matches'_iff (L : List (RegularExpression α)) (x : List α) :
     induction L with
     | nil => simp
     | cons head tail ih =>
-      simp only [List.sum_cons, matches', List.mem_cons, exists_eq_or_imp, List.sum_cons,
-      Language.mem_add, ih]
+      simp only [List.sum_cons, matches', List.mem_cons, exists_eq_or_imp, Language.mem_add, ih]
 
 end Cslib.Language
