@@ -325,6 +325,14 @@ lemma isSuffix_splitLast [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Sym
   | nil => simp [splitLast]
   | cons a xs ih => grind [splitLast]
 
+noncomputable def splitLastCompl [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol)
+    (s t : Fin n) (xs : List Symbol) : List Symbol := (isSuffix_splitLast flts s t xs).choose
+
+lemma splitLast_append [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n)
+    (xs : List Symbol) :
+    splitLastCompl flts s t xs ++ splitLast flts s t xs = xs := by
+  grind [splitLast, splitLastCompl]
+
 -- Add the analogous lemmas for splitLast like the lemmas of splitFirst below
 -- Statements first. Work on the proof only if you have time.
 -- Brooke can work on this (fifth)
