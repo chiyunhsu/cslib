@@ -418,13 +418,13 @@ theorem mtr_append_eq {State Label : Type*} {flts : FLTS State Label} {s : State
 lemma splitFirstCompl_mem {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
     (h : xs ∈ (language (BoundedPath.mk flts i k (k.val + 1)))) :
     splitFirstCompl flts i k xs ∈ language (BoundedPath.mk flts k k (k.val + 1)) := by
-  simp only [mem_language, Accepts] at h ⊢
-  rw [← splitFirst_append flts i k xs] at h
-  obtain ⟨h1, h2⟩ := h
-  rw [mtr_append_eq] at h1
-  constructor
-  · sorry
-  · sorry
+  have h' := splitFirst_mem h
+  simp only [mem_language, Accepts] at h h' ⊢
+  rw [← splitFirst_append flts i k xs, mtr_append_eq] at h
+  refine ⟨by simpa [h'.1] using h.1, ?_⟩
+  by_cases splitFirst flts i k xs = [] ∨ splitFirstCompl flts i k xs = []
+  · grind [PathSupp]
+  grind [pathSupp_append]
 
 lemma path2 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i k : Fin n) :
     language (BoundedPath.mk flts i k (k + 1)) =
