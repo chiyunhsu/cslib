@@ -62,6 +62,7 @@ theorem IsRegular.iff_nfa {l : Language Symbol} :
     use Set State, inferInstance, na.toDAFinAcc
     grind
 
+
 /-- The complementation of a regular language is regular. -/
 theorem IsRegular.compl {l : Language Symbol} (h : l.IsRegular) : (lᶜ).IsRegular := by
   rw [IsRegular.iff_dfa] at h ⊢
@@ -333,10 +334,22 @@ lemma splitLast_append [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbo
     splitLastCompl flts s t xs ++ splitLast flts s t xs = xs := by
   grind [splitLast, splitLastCompl]
 
+lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
+    {i j k : Fin n} {xs : List Symbol}
+    (h : xs ∈ language (BoundedPath.mk flts i j (k.val + 1)))
+    (h' : xs ∉ language (BoundedPath.mk flts i j k.val)) :
+    splitLast flts i k xs ∈ language (BoundedPath.mk flts k j k.val) := by sorry
+
+lemma splitLastCompl_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
+    {i j k : Fin n} {xs : List Symbol}
+    (h : xs ∈ language (BoundedPath.mk flts i j (k.val + 1)))
+    (h' : xs ∉ language (BoundedPath.mk flts i j k.val)) :
+    splitLastCompl flts i k xs ∈ language (BoundedPath.mk flts i k (k.val + 1)) := by sorry
+
 -- Add the analogous lemmas for splitLast like the lemmas of splitFirst below
 -- Statements first. Work on the proof only if you have time.
 -- Brooke can work on this (fifth)
-
+set_option pp.structureInstances false -- delete this once lemmas are resolved
 lemma path1 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
     language (BoundedPath.mk flts i j (k + 1)) = language (BoundedPath.mk flts i j k) +
     (language (BoundedPath.mk flts i k (k + 1)) * language (BoundedPath.mk flts k j k)) := by
