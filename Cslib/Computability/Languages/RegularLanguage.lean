@@ -287,6 +287,7 @@ lemma pathSupp_head {State : Type*} {flts : FLTS State Symbol} {s : State}
     PathSupp flts s (a :: xs) = {flts.tr s a} ∪ PathSupp flts (flts.tr s a) xs := by
   grind [PathSupp]
 
+-- Brooke can work on this lemma (first)
 lemma pathSupp_append {State : Type*} {flts : FLTS State Symbol} {s : State}
     {xs ys : List Symbol} (hxs : xs ≠ [] ∧ ys ≠ []) :
     PathSupp flts s (xs ++ ys) =
@@ -338,7 +339,17 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
     (h : xs ∈ language (BoundedPath.mk flts i j (k.val + 1)))
     (h' : xs ∉ language (BoundedPath.mk flts i j k.val)) :
-    splitLast flts i k xs ∈ language (BoundedPath.mk flts k j k.val) := by sorry
+    splitLast flts i k xs ∈ language (BoundedPath.mk flts k j k.val) := by
+  induction xs with
+  | nil => -- Brooke can work on this (second)
+  sorry
+  | cons a xs ih =>
+  simp only [splitLast]
+  split_ifs
+  · -- Harder. Will deduce that i = k
+    sorry
+  -- Brooke can work on this (third/fourth) Easier
+  sorry
 
 lemma splitLastCompl_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
@@ -346,9 +357,7 @@ lemma splitLastCompl_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Sym
     (h' : xs ∉ language (BoundedPath.mk flts i j k.val)) :
     splitLastCompl flts i k xs ∈ language (BoundedPath.mk flts i k (k.val + 1)) := by sorry
 
--- Add the analogous lemmas for splitLast like the lemmas of splitFirst below
--- Statements first. Work on the proof only if you have time.
--- Brooke can work on this (fifth)
+-- Brooke can work on this (third/fourth)
 set_option pp.structureInstances false -- delete this once lemmas are resolved
 lemma path1 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
     language (BoundedPath.mk flts i j (k + 1)) = language (BoundedPath.mk flts i j k) +
@@ -368,7 +377,6 @@ def splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) : List Symbo
   | [] => []
   | a :: x => if flts.tr s a = t then [a] else a :: splitFirst flts (flts.tr s a) t x
 
--- Brooke can work on this lemma (fourth)
 lemma isPrefix_splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
     IsPrefix (splitFirst flts s t xs) xs := by
   induction xs generalizing s with
@@ -439,7 +447,6 @@ lemma path3 {n : ℕ} (flts : FLTS (Fin n) Symbol) (k : Fin n) :
     language (BoundedPath.mk flts k k (k + 1)) = (language (BoundedPath.mk flts k k k))∗ := by
   sorry
 
--- Brooke can do this (first)
 lemma set_aux {α : Type*} (A : Set α) : (∀ (i : α), i ∉ A) ↔ A = ∅ := by
   grind
 
