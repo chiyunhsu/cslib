@@ -319,11 +319,11 @@ def splitLast [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t :
   | a :: x => if (splitLast flts (flts.tr s a) t x = x) ∧ flts.tr s a ≠ t then a :: x
   else splitLast flts (flts.tr s a) t x
 
-lemma isSuffix_splitLast [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
-    IsSuffix (splitLast flts s t xs) xs := by
-  induction xs with
+lemma isSuffix_splitLast [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n)
+  (xs : List Symbol) : IsSuffix (splitLast flts s t xs) xs := by
+  induction xs generalizing s with
   | nil => simp [splitLast]
-  | cons a xs ih => sorry
+  | cons a xs ih => grind [splitLast]
 
 -- Add the analogous lemmas for splitLast like the lemmas of splitFirst below
 -- Statements first. Work on the proof only if you have time.
@@ -383,10 +383,19 @@ lemma splitFirst_mem {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : 
     rw [this, pathSupp_head hPath]
     grind
 
+theorem mtr_append_eq {State Label : Type*} {flts : FLTS State Label} {s : State}
+    {xs ys : List Label} : flts.mtr s (xs ++ ys) = flts.mtr (flts.mtr s xs) ys := by grind
+
 lemma splitFirstCompl_mem {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
     (h : xs ∈ (language (BoundedPath.mk flts i k (k.val + 1)))) :
-    splitFirstCompl flts i ⟨k, by omega⟩ xs ∈ language (BoundedPath.mk flts k k (k.val + 1)) := by
-  sorry
+    splitFirstCompl flts i k xs ∈ language (BoundedPath.mk flts k k (k.val + 1)) := by
+  simp only [mem_language, Accepts] at h ⊢
+  rw [← splitFirst_append flts i k xs] at h
+  obtain ⟨h1, h2⟩ := h
+  rw [mtr_append_eq] at h1
+  constructor
+  · sorry
+  · sorry
 
 lemma path2 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i k : Fin n) :
     language (BoundedPath.mk flts i k (k + 1)) =
