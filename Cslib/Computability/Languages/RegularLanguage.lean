@@ -295,17 +295,10 @@ lemma pathSupp_append {State : Type*} {flts : FLTS State Symbol} {s : State}
   induction xs generalizing s with
   | nil => grind [PathSupp]
   | cons a xs ih =>
-  have h1 : flts.mtr s (a :: xs) = flts.mtr (flts.tr s a) xs := by rfl
-  rw [h1]
+  rw [List.cons_append, pathSupp_head (by simp [hxs.2])]
   by_cases hx : xs = []
-  · have h2 : PathSupp flts s (a :: xs) = ∅ := by aesop
-    rw [h2]
-    rw [List.cons_append, pathSupp_head (by simp [hxs.2])]
-    grind
-  · have h2 : PathSupp flts s (a :: xs) = {flts.tr s a} ∪ PathSupp flts (flts.tr s a) xs :=
-    (pathSupp_head hx)
-    rw [h2]
-    rw [List.cons_append, pathSupp_head (by simp [hxs.2])]
+  · grind [PathSupp]
+  · rw [pathSupp_head hx]
     grind
 
 structure BoundedPath (n : ℕ) (Symbol : Type*) extends FLTS (Fin n) Symbol where
