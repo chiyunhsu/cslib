@@ -335,6 +335,9 @@ lemma splitLast_append [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbo
     splitLastCompl flts s t xs ++ splitLast flts s t xs = xs := by
   grind [splitLast, splitLastCompl]
 
+theorem mtr_head_eq {State Label : Type*} {flts : FLTS State Label} {s : State}
+    {x : Label} {xs : List Label} : flts.mtr s (x :: xs) = flts.mtr (flts.tr s x) xs := by grind
+
 lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
     (h : xs ∈ language (BoundedPath.mk flts i j (k.val + 1)))
@@ -412,6 +415,16 @@ lemma splitFirst_mem {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : 
     rw [this, pathSupp_head hPath]
     grind
 
+lemma splitFirst_mem' {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
+    (hxs : xs ≠ []) (h : xs ∈ (language (BoundedPath.mk flts i k (k.val + 1)))) :
+    splitFirst flts i k xs ∈ language (BoundedPath.mk flts i k k.val) - 1 := by
+  rw [Language.mem_sub]
+  refine ⟨splitFirst_mem h, ?_⟩
+  simp only [Language.mem_one]
+  induction xs with
+  | nil => contradiction
+  | cons a xs ih => grind [splitFirst]
+
 theorem mtr_append_eq {State Label : Type*} {flts : FLTS State Label} {s : State}
     {xs ys : List Label} : flts.mtr s (xs ++ ys) = flts.mtr (flts.mtr s xs) ys := by grind
 
@@ -443,9 +456,38 @@ lemma path2 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i k : Fin n) :
     · grind
     grind [pathSupp_append]
 
+lemma kstar_eq {α : Type*} (l : Language α) : l∗ = (l - 1)∗ := by
+  ext x
+  rw [Language.kstar_def_nonempty, Language.mem_kstar]
+  -- aesop
+  exact ⟨fun ⟨S, hx, h⟩ => ⟨S, ⟨hx, fun y ys => h y ys⟩⟩,
+    fun ⟨S, ⟨hx, h⟩⟩ => ⟨S, hx, fun y ys => h y ys⟩⟩
+
 lemma path3 {n : ℕ} (flts : FLTS (Fin n) Symbol) (k : Fin n) :
     language (BoundedPath.mk flts k k (k + 1)) = (language (BoundedPath.mk flts k k k))∗ := by
-  sorry
+  rw [← mul_one (language (BoundedPath.mk flts k k ↑k))∗]
+  rw [kstar_eq]
+  refine (Language.self_eq_mul_add_iff (by simp [Language.mem_sub])).mp ?_
+  -- mimic the proof of path2
+  ext xs
+  simp only [Language.mem_add, Language.mem_mul, Language.mem_sub]
+  constructor
+  · intro h
+    by_cases h' : xs ∈ (1 : Language Symbol)
+    · grind
+    left
+    use splitFirst flts k k xs, splitFirst_mem' h' h,
+      splitFirstCompl flts k k xs, splitFirstCompl_mem h,
+      splitFirst_append flts _ _ _
+  · rintro (⟨ys, ⟨⟨⟨hys, hsuppys⟩, hysnotempty⟩, ⟨zs, ⟨⟨hzs, hsuppzs⟩, happend⟩⟩⟩⟩ | hempty)
+    · refine ⟨by grind, ?_⟩
+      by_cases zs = []
+      · grind
+      rw [Language.mem_one] at hysnotempty
+      grind [pathSupp_append]
+    · rw [Language.mem_one] at hempty
+      simp only [mem_language, Accepts]
+      grind [PathSupp]
 
 lemma set_aux {α : Type*} (A : Set α) : (∀ (i : α), i ∉ A) ↔ A = ∅ := by
   grind
