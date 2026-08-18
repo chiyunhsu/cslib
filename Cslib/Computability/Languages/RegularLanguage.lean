@@ -368,12 +368,12 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
   -- Brooke can work on this
   · rw [not_and_or, not_not] at hc
     rcases hc with hc1 | hc2
-    · sorry
+    · sorry -- It is possible we do not need to do rcases hc
     · simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt,
       not_and, not_forall, not_lt] at h h'
       rw [mtr_head_eq] at h h'
       by_cases hxs : xs = []
-      · sorry
+      · sorry -- easiest
       · rw [pathSupp_head hxs] at h
         have : xs ∈ language (BoundedPath.mk flts (flts.tr i a) j (↑k + 1)) := by
           simp [mem_language, Accepts]
@@ -381,7 +381,6 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
         have ih' := ih this
         apply ih'
         sorry
-
       -- Prove the goal from simplifying `h'`, in a similar way we simplify `h`
 
       -- have : PathSupp flts i (a :: xs) = PathSupp flts (flts.tr i a) xs ∪ {flts.tr i a} := by sorry
