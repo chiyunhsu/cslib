@@ -348,8 +348,10 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     (h' : xs ∉ language (BoundedPath.mk flts i j k.val)) :
     splitLast flts i k xs ∈ language (BoundedPath.mk flts k j k.val) := by
   induction xs with
-  | nil => -- Brooke can work on this (second)
-  sorry
+  | nil =>
+  simp only [mem_language, Accepts] at h h' ⊢
+  have h1 : PathSupp flts i [] = ∅ := by aesop
+  grind
   | cons a xs ih =>
   simp only [splitLast]
   split_ifs
