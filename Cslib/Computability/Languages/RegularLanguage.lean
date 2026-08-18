@@ -298,8 +298,9 @@ lemma pathSupp_append {State : Type*} {flts : FLTS State Symbol} {s : State}
   rw [List.cons_append, pathSupp_head (by simp [hxs.2])]
   by_cases hx : xs = []
   · grind [PathSupp]
-  · rw [pathSupp_head hx]
-    grind
+  · grind [pathSupp_head hx]
+    -- rw [pathSupp_head hx]
+    -- grind
 
 structure BoundedPath (n : ℕ) (Symbol : Type*) extends FLTS (Fin n) Symbol where
   start : Fin n
@@ -342,6 +343,9 @@ lemma splitLast_append [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbo
 theorem mtr_head_eq {State Label : Type*} {flts : FLTS State Label} {s : State}
     {x : Label} {xs : List Label} : flts.mtr s (x :: xs) = flts.mtr (flts.tr s x) xs := by grind
 
+theorem mtr_append_eq {State Label : Type*} {flts : FLTS State Label} {s : State}
+    {xs ys : List Label} : flts.mtr s (xs ++ ys) = flts.mtr (flts.mtr s xs) ys := by grind
+
 set_option pp.structureInstances false -- remove later; this just makes the goals easier to read
 lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
@@ -349,16 +353,18 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     (h' : xs ∉ language (BoundedPath.mk flts i j k.val)) :
     splitLast flts i k xs ∈ language (BoundedPath.mk flts k j k.val) := by
   induction xs with
-  | nil =>
-  simp only [mem_language, Accepts] at h h' ⊢
-  grind [PathSupp]
+  | nil => -- Brooke can work on this (second)
+  simp [Accepts, PathSupp] at h h'
+  contradiction
+  -- simp only [mem_language, Accepts] at h h' ⊢
+  -- grind [PathSupp]
   | cons a xs ih =>
   simp only [splitLast]
   split_ifs with hc
   · -- Harder. Will deduce that i = k
     sorry
   -- Brooke can work on this (third/fourth) Easier
-  ·
+  · sorry
 
 lemma splitLastCompl_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
@@ -382,14 +388,14 @@ lemma path1 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
     use splitLastCompl flts i k xs, splitLastCompl_mem h h',
     splitLast flts i k xs,  splitLast_mem h h',
     splitLast_append flts _ _ _
-  · simp only [mem_language, Accepts]
+  · --simp only [mem_language, Accepts]
     rintro (h_left | ⟨ys, ⟨⟨hys, hsuppys⟩, ⟨zs, ⟨⟨hzs, hsuppzs⟩, happend⟩⟩⟩⟩)
-    · grind
+    · simp only [mem_language, Accepts] at h_left ⊢
+      grind
     · refine ⟨by grind, ?_⟩
       by_cases ys = [] ∨ zs = []
       · grind
       grind [pathSupp_append]
-
 
 -- The function sending a string to its shortest prefix which ends at state `t`.
 def splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) : List Symbol → List Symbol
@@ -441,9 +447,6 @@ lemma splitFirst_mem' {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs :
   | nil => contradiction
   | cons a xs ih => grind [splitFirst]
 
-theorem mtr_append_eq {State Label : Type*} {flts : FLTS State Label} {s : State}
-    {xs ys : List Label} : flts.mtr s (xs ++ ys) = flts.mtr (flts.mtr s xs) ys := by grind
-
 lemma splitFirstCompl_mem {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
     (h : xs ∈ (language (BoundedPath.mk flts i k (k.val + 1)))) :
     splitFirstCompl flts i k xs ∈ language (BoundedPath.mk flts k k (k.val + 1)) := by
@@ -465,8 +468,7 @@ lemma path2 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i k : Fin n) :
     use splitFirst flts i k xs, splitFirst_mem h,
       splitFirstCompl flts i k xs, splitFirstCompl_mem h,
       splitFirst_append flts _ _ _
-  · simp only [mem_language, Accepts]
-    intro ⟨ys, ⟨⟨hys, hsuppys⟩, ⟨zs, ⟨⟨hzs, hsuppzs⟩, happend⟩⟩⟩⟩
+  · intro ⟨ys, ⟨⟨hys, hsuppys⟩, ⟨zs, ⟨⟨hzs, hsuppzs⟩, happend⟩⟩⟩⟩
     refine ⟨by grind, ?_⟩
     by_cases ys = [] ∨ zs = []
     · grind
