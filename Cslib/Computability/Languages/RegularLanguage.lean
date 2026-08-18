@@ -367,7 +367,7 @@ lemma splitLastCompl_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Sym
     splitLastCompl flts i k xs ∈ language (BoundedPath.mk flts i k (k.val + 1)) := by sorry
 
 -- Brooke can work on this (third/fourth)
-set_option pp.structureInstances false -- delete this once lemmas are resolved
+set_option pp.structureInstances false -- delete this after meeting
 lemma path1 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
     language (BoundedPath.mk flts i j (k + 1)) = language (BoundedPath.mk flts i j k) +
     (language (BoundedPath.mk flts i k (k + 1)) * language (BoundedPath.mk flts k j k)) := by
@@ -382,7 +382,14 @@ lemma path1 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
     use splitLastCompl flts i k xs, splitLastCompl_mem h h',
     splitLast flts i k xs,  splitLast_mem h h',
     splitLast_append flts _ _ _
-  · sorry
+  · simp only [mem_language, Accepts]
+    rintro (h_left | ⟨ys, ⟨⟨hys, hsuppys⟩, ⟨zs, ⟨⟨hzs, hsuppzs⟩, happend⟩⟩⟩⟩)
+    · grind
+    · refine ⟨by grind, ?_⟩
+      by_cases ys = [] ∨ zs = []
+      · grind
+      grind [pathSupp_append]
+
 
 -- The function sending a string to its shortest prefix which ends at state `t`.
 def splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) : List Symbol → List Symbol
