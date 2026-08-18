@@ -371,6 +371,7 @@ set_option pp.structureInstances false -- delete this once lemmas are resolved
 lemma path1 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
     language (BoundedPath.mk flts i j (k + 1)) = language (BoundedPath.mk flts i j k) +
     (language (BoundedPath.mk flts i k (k + 1)) * language (BoundedPath.mk flts k j k)) := by
+  classical
   ext xs
   rw [Language.mem_add, Language.mem_mul]
   constructor
@@ -378,7 +379,9 @@ lemma path1 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
     by_cases h' : xs ∈ language (BoundedPath.mk flts i j k)
     · left; exact h'
     right
-    sorry
+    use splitLastCompl flts i k xs, splitLastCompl_mem h h',
+    splitLast flts i k xs,  splitLast_mem h h',
+    splitLast_append flts _ _ _
   · sorry
 
 -- The function sending a string to its shortest prefix which ends at state `t`.
