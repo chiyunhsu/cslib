@@ -287,7 +287,6 @@ lemma pathSupp_head {State : Type*} {flts : FLTS State Symbol} {s : State}
     PathSupp flts s (a :: xs) = {flts.tr s a} ∪ PathSupp flts (flts.tr s a) xs := by
   grind [PathSupp]
 
--- Brooke can work on this lemma (first)
 lemma pathSupp_append {State : Type*} {flts : FLTS State Symbol} {s : State}
     {xs ys : List Symbol} (hxs : xs ≠ [] ∧ ys ≠ []) :
     PathSupp flts s (xs ++ ys) =
@@ -299,8 +298,6 @@ lemma pathSupp_append {State : Type*} {flts : FLTS State Symbol} {s : State}
   by_cases hx : xs = []
   · grind [PathSupp]
   · grind [pathSupp_head hx]
-    -- rw [pathSupp_head hx]
-    -- grind
 
 structure BoundedPath (n : ℕ) (Symbol : Type*) extends FLTS (Fin n) Symbol where
   start : Fin n
@@ -358,19 +355,51 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
   contradiction
   | cons a xs ih =>
   simp only [splitLast]
+
+-- def splitLast [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) :
+--     List Symbol → List Symbol
+--   | [] => []
+--   | a :: x => if (splitLast flts (flts.tr s a) t x = x) ∧ flts.tr s a ≠ t then a :: x
+--   else splitLast flts (flts.tr s a) t x
+
   split_ifs with hc
   · -- Harder. Will deduce that i = k
     sorry
-  -- Brooke can work on this (third/fourth) Easier
-  · by_cases hxs : xs = []
-    · aesop
-    · by_cases flts.tr i a = k
-      · apply ih
-        simp only [mem_language, Accepts, pathSupp_head hxs] at h ⊢
-        grind
+  -- Brooke can work on this
+  · rw [not_and_or, not_not] at hc
+    rcases hc with hc1 | hc2
+    · sorry
+    · simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt,
+      not_and, not_forall, not_lt] at h h'
+      rw [mtr_head_eq] at h h'
+      by_cases hxs : xs = []
+      · sorry
+      · rw [pathSupp_head hxs] at h
+        have : xs ∈ language (BoundedPath.mk flts (flts.tr i a) j (↑k + 1)) := by
+          simp [mem_language, Accepts]
+          grind
+        have ih' := ih this
+        apply ih'
         sorry
-      · exact ih (by simp only [mem_language, Accepts, pathSupp_head hxs] at h ⊢; grind)
-          (by simp only [mem_language, Accepts, pathSupp_head hxs] at h h' ⊢; grind)
+
+      -- Prove the goal from simplifying `h'`, in a similar way we simplify `h`
+
+      -- have : PathSupp flts i (a :: xs) = PathSupp flts (flts.tr i a) xs ∪ {flts.tr i a} := by sorry
+-- lemma pathSupp_head {State : Type*} {flts : FLTS State Symbol} {s : State}
+--     {a : Symbol} {xs : List Symbol} (hxs : xs ≠ []) :
+--     PathSupp flts s (a :: xs) = {flts.tr s a} ∪ PathSupp flts (flts.tr s a) xs := by
+--   grind [PathSupp]
+
+
+    -- by_cases hxs : xs = []
+    -- · aesop
+    -- · by_cases flts.tr i a = k
+    --   · apply ih
+    --     simp only [mem_language, Accepts, pathSupp_head hxs] at h ⊢
+    --     grind
+    --     sorry
+    --   · exact ih (by simp only [mem_language, Accepts, pathSupp_head hxs] at h ⊢; grind)
+    --       (by simp only [mem_language, Accepts, pathSupp_head hxs] at h h' ⊢; grind)
 
 lemma splitLastCompl_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
@@ -378,8 +407,6 @@ lemma splitLastCompl_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Sym
     (h' : xs ∉ language (BoundedPath.mk flts i j k.val)) :
     splitLastCompl flts i k xs ∈ language (BoundedPath.mk flts i k (k.val + 1)) := by sorry
 
--- Brooke can work on this (third/fourth)
-set_option pp.structureInstances false -- delete this after meeting
 lemma path1 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
     language (BoundedPath.mk flts i j (k + 1)) = language (BoundedPath.mk flts i j k) +
     (language (BoundedPath.mk flts i k (k + 1)) * language (BoundedPath.mk flts k j k)) := by
@@ -394,8 +421,7 @@ lemma path1 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
     use splitLastCompl flts i k xs, splitLastCompl_mem h h',
     splitLast flts i k xs,  splitLast_mem h h',
     splitLast_append flts _ _ _
-  · --simp only [mem_language, Accepts]
-    rintro (h_left | ⟨ys, ⟨⟨hys, hsuppys⟩, ⟨zs, ⟨⟨hzs, hsuppzs⟩, happend⟩⟩⟩⟩)
+  · rintro (h_left | ⟨ys, ⟨⟨hys, hsuppys⟩, ⟨zs, ⟨⟨hzs, hsuppzs⟩, happend⟩⟩⟩⟩)
     · simp only [mem_language, Accepts] at h_left ⊢
       grind
     · refine ⟨by grind, ?_⟩
