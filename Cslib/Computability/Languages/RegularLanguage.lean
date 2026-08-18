@@ -352,19 +352,25 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     (h : xs ∈ language (BoundedPath.mk flts i j (k.val + 1)))
     (h' : xs ∉ language (BoundedPath.mk flts i j k.val)) :
     splitLast flts i k xs ∈ language (BoundedPath.mk flts k j k.val) := by
-  induction xs with
-  | nil => -- Brooke can work on this (second)
+  induction xs generalizing i with
+  | nil =>
   simp [Accepts, PathSupp] at h h'
   contradiction
-  -- simp only [mem_language, Accepts] at h h' ⊢
-  -- grind [PathSupp]
   | cons a xs ih =>
   simp only [splitLast]
   split_ifs with hc
   · -- Harder. Will deduce that i = k
     sorry
   -- Brooke can work on this (third/fourth) Easier
-  · sorry
+  · by_cases hxs : xs = []
+    · aesop
+    · by_cases flts.tr i a = k
+      · apply ih
+        simp only [mem_language, Accepts, pathSupp_head hxs] at h ⊢
+        grind
+        sorry
+      · exact ih (by simp only [mem_language, Accepts, pathSupp_head hxs] at h ⊢; grind)
+          (by simp only [mem_language, Accepts, pathSupp_head hxs] at h h' ⊢; grind)
 
 lemma splitLastCompl_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
