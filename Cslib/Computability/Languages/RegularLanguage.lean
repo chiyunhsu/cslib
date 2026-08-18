@@ -342,6 +342,7 @@ lemma splitLast_append [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbo
 theorem mtr_head_eq {State Label : Type*} {flts : FLTS State Label} {s : State}
     {x : Label} {xs : List Label} : flts.mtr s (x :: xs) = flts.mtr (flts.tr s x) xs := by grind
 
+set_option pp.structureInstances false -- remove later; this just makes the goals easier to read
 lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
     (h : xs ∈ language (BoundedPath.mk flts i j (k.val + 1)))
@@ -350,15 +351,14 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
   induction xs with
   | nil =>
   simp only [mem_language, Accepts] at h h' ⊢
-  have h1 : PathSupp flts i [] = ∅ := by aesop
-  grind
+  grind [PathSupp]
   | cons a xs ih =>
   simp only [splitLast]
-  split_ifs
+  split_ifs with hc
   · -- Harder. Will deduce that i = k
     sorry
   -- Brooke can work on this (third/fourth) Easier
-  sorry
+  ·
 
 lemma splitLastCompl_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
