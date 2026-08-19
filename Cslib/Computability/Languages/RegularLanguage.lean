@@ -316,7 +316,10 @@ lemma language_path_eq_dfa {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j : Fin n) 
   simp only [mem_language, Accepts]
   grind
 
--- The function sending a string to its shortest suffix which starts at state `t`.
+/-- The function sending a string to its shortest suffix which starts at state `t`.
+If the string ends at state `t`, then the function returns the empty string.
+If the string never passes through state `t` (starting state can be `t`),
+then the function returns the original string. -/
 def splitLast [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) :
     List Symbol → List Symbol
   | [] => []
@@ -336,6 +339,17 @@ lemma splitLast_append [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbo
     (xs : List Symbol) :
     splitLastCompl flts s t xs ++ splitLast flts s t xs = xs := by
   grind [splitLast, splitLastCompl]
+
+lemma splitLast_neq_of_mem_PathSupp [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
+    {s t : Fin n} {xs : List Symbol} (h : t ∈ PathSupp flts s xs) :
+    ¬(splitLast flts s t xs = xs) := by
+  induction xs generalizing s with
+  | nil => grind [splitLast, PathSupp]
+  | cons a xs ih =>
+  by_cases hxs : xs = []
+  · grind [splitLast, PathSupp]
+  rw [pathSupp_head hxs, Set.mem_union, Set.mem_singleton_iff] at h
+  grind [splitLast, (isSuffix_splitLast flts (flts.tr s a) t xs).length_le]
 
 theorem mtr_head_eq {State Label : Type*} {flts : FLTS State Label} {s : State}
     {x : Label} {xs : List Label} : flts.mtr s (x :: xs) = flts.mtr (flts.tr s x) xs := by grind
@@ -364,7 +378,22 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
 
   split_ifs with hc
   · -- Harder. Will deduce that i = k
-    sorry
+    simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt, not_and,
+      not_forall, not_lt, and_imp, ne_eq] at *
+    simp only [mtr_head_eq] at *
+    simp only [h, forall_const] at h'
+    obtain ⟨x, ⟨hx, hxk⟩⟩ := h'
+    have eq := le_antisymm (h.2 x hx) hxk
+    rw [eq] at hx
+    by_cases hxs : xs = []
+    · grind [PathSupp]
+    rw [pathSupp_head hxs] at hx h
+    rcases hx with hx1 | hx2
+    · have := hc.2
+      simp only [mem_singleton_iff] at hx1
+      symm at hx1
+      contradiction
+    · grind [splitLast_neq_of_mem_PathSupp hx2]
   -- Brooke can work on this
   · rw [not_and_or, not_not] at hc
     rcases hc with hc1 | hc2
@@ -428,7 +457,10 @@ lemma path1 {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
       · grind
       grind [pathSupp_append]
 
--- The function sending a string to its shortest prefix which ends at state `t`.
+/-- The function sending a string to its shortest prefix which ends at state `t`.
+The function returns the empty string if and only if the string is empty.
+If the string never passes through state `t` (starting state can be `t`),
+then the function returns the original string. -/
 def splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) : List Symbol → List Symbol
   | [] => []
   | a :: x => if flts.tr s a = t then [a] else a :: splitFirst flts (flts.tr s a) t x
