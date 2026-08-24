@@ -461,7 +461,16 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
   -- Brooke can work on this
   · rw [not_and_or, not_not] at hc
     rcases hc with hc1 | hc2
-    · sorry -- It is possible we do not need to do rcases hc
+    · simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt,
+      not_and, not_forall, not_lt] at h h'
+      rw [mtr_head_eq] at h h'
+      apply ih
+      simp only [mem_language, Accepts]
+      by_cases hxs : xs = []
+      · aesop
+      · rw [pathSupp_head hxs] at h
+        aesop
+      simp only [mem_language, Accepts]
     · simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt,
       not_and, not_forall, not_lt] at h h'
       rw [mtr_head_eq] at h h'
