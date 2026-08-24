@@ -475,7 +475,12 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
       not_and, not_forall, not_lt] at h h'
       rw [mtr_head_eq] at h h'
       by_cases hxs : xs = []
-      · sorry -- easiest
+      · simp only [mem_language, Accepts]
+        have h1 : flts.tr i a = j := by grind
+        have h2 : j = k := by grind
+        subst hxs
+        simp only [splitLast, PathSupp]
+        grind
       · rw [pathSupp_head hxs] at h
         have : xs ∈ language (BoundedPath.mk flts (flts.tr i a) j (↑k + 1)) := by
           simp [mem_language, Accepts]
