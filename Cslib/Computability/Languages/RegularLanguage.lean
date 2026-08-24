@@ -476,8 +476,6 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
       rw [mtr_head_eq] at h h'
       by_cases hxs : xs = []
       · simp only [mem_language, Accepts]
-        have h1 : flts.tr i a = j := by grind
-        have h2 : j = k := by grind
         subst hxs
         simp only [splitLast, PathSupp]
         grind
