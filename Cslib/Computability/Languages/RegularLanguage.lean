@@ -503,32 +503,32 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
       -- Directly prove the goal from definition
       sorry
 
-    rcases hc with hc1 | hc2
-    · simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt,
-      not_and, not_forall, not_lt] at h h'
-      rw [mtr_head_eq] at h h'
-      apply ih
-      simp only [mem_language, Accepts]
-      by_cases hxs : xs = []
-      · aesop
-      · rw [pathSupp_head hxs] at h
-        aesop
-      simp only [mem_language, Accepts]
-    · simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt,
-      not_and, not_forall, not_lt] at h h'
-      rw [mtr_head_eq] at h h'
-      by_cases hxs : xs = []
-      · simp only [mem_language, Accepts]
-        subst hxs
-        simp only [splitLast, PathSupp]
-        grind
-      · rw [pathSupp_head hxs] at h
-        have : xs ∈ language (BoundedPath.mk flts (flts.tr i a) j (↑k + 1)) := by
-          simp [mem_language, Accepts]
-          grind
-        have ih' := ih this
-        apply ih'
-        sorry
+    -- rcases hc with hc1 | hc2
+    -- · simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt,
+    --   not_and, not_forall, not_lt] at h h'
+    --   rw [mtr_head_eq] at h h'
+    --   apply ih
+    --   simp only [mem_language, Accepts]
+    --   by_cases hxs : xs = []
+    --   · aesop
+    --   · rw [pathSupp_head hxs] at h
+    --     aesop
+    --   simp only [mem_language, Accepts]
+    -- · simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt,
+    --   not_and, not_forall, not_lt] at h h'
+    --   rw [mtr_head_eq] at h h'
+    --   by_cases hxs : xs = []
+    --   · simp only [mem_language, Accepts]
+    --     subst hxs
+    --     simp only [splitLast, PathSupp]
+    --     grind
+    --   · rw [pathSupp_head hxs] at h
+    --     have : xs ∈ language (BoundedPath.mk flts (flts.tr i a) j (↑k + 1)) := by
+    --       simp [mem_language, Accepts]
+    --       grind
+    --     have ih' := ih this
+    --     apply ih'
+    --     sorry
       -- Prove the goal from simplifying `h'`, in a similar way we simplify `h`
 
       -- have : PathSupp flts i (a :: xs) = PathSupp flts (flts.tr i a) xs ∪ {flts.tr i a} := by sorry
