@@ -388,6 +388,15 @@ lemma splitLast_neq_of_mem_PathSupp [DecidableEq Symbol] {n : ℕ} {flts : FLTS 
   rw [pathSupp_head hxs, Set.mem_union, Set.mem_singleton_iff] at h
   grind [splitLast, (isSuffix_splitLast flts (flts.tr s a) t xs).length_le]
 
+lemma mem_PathSupp_of_neq_splitLast [DecidableEq Symbol] {n : ℕ}
+    {flts : FLTS (Fin n) Symbol} {s t : Fin n} {xs : List Symbol}
+    (h : ¬(splitLast flts s t xs = xs)) :
+    t ∈ PathSupp flts s xs ∨ t = flts.mtr s xs := by
+  induction xs generalizing s with
+  | nil => contradiction
+  | cons a xs ih =>
+  by_cases hxs : xs = [] <;> grind [splitLast, PathSupp]
+
 lemma splitLastCompl_eq [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {s t : Fin n} {xs : List Symbol} (h : t ∉ PathSupp flts s xs) (h' : t = flts.mtr s xs) :
     splitLastCompl' flts s t xs = xs := by
@@ -398,6 +407,11 @@ lemma splitLastCompl_eq [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symb
   · grind [splitLastCompl', PathSupp]
   rw [pathSupp_head hxs, Set.mem_union, Set.mem_singleton_iff] at h
   grind [splitLastCompl', (isSuffix_splitLast flts (flts.tr s a) t xs).length_le]
+
+lemma splitLast_eq [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
+    {s t : Fin n} {xs : List Symbol} (h : t ∉ PathSupp flts s xs) (h' : t = flts.mtr s xs) :
+    splitLast flts s t xs = [] := by
+  simpa [splitLastCompl_eq h h'] using splitLast_append' flts s t xs
 
 lemma mem_PathSupp_of_nonempty_splitLastCompl [DecidableEq Symbol] {n : ℕ}
     {flts : FLTS (Fin n) Symbol} {s t : Fin n} {xs : List Symbol}
@@ -436,6 +450,15 @@ lemma splitLast_aux [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     contradiction
   · grind [splitLast_neq_of_mem_PathSupp hx2]
 
+lemma language_BoundedPath_head_iff {n : ℕ} {flts : FLTS (Fin n) Symbol}
+    {i j : Fin n} {k : ℕ} {a : Symbol} {xs : List Symbol} :
+    a :: xs ∈ language (BoundedPath.mk flts i j k) ↔
+    xs ∈ language (BoundedPath.mk flts (flts.tr i a) j k) ∧ (flts.tr i a < k ∨ xs = []) := by
+  simp only [mem_language, Accepts]
+  by_cases hxs : xs = []
+  · grind [PathSupp]
+  grind [pathSupp_head hxs]
+
 set_option pp.structureInstances false -- remove later; this just makes the goals easier to read
 lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
@@ -448,18 +471,38 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
   contradiction
   | cons a xs ih =>
   simp only [splitLast]
-
--- def splitLast [DecidableEq Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) :
---     List Symbol → List Symbol
---   | [] => []
---   | a :: x => if (splitLast flts (flts.tr s a) t x = x) ∧ flts.tr s a ≠ t then a :: x
---   else splitLast flts (flts.tr s a) t x
-
   split_ifs with hc
-  · -- Harder. Will deduce that i = k
-    exfalso; exact splitLast_aux h h' hc
-  -- Brooke can work on this
+  · exfalso; exact splitLast_aux h h' hc
   · rw [not_and_or, not_not] at hc
+    -- The last `k` is later than `flts.tr i a` or equal to it.
+    by_cases hc1 : ¬splitLast flts (flts.tr i a) k xs = xs
+    · by_cases hxs : xs = []
+      · grind [splitLast]
+      -- First hypothesis of `ih` is implied by `h`
+      have haux := language_BoundedPath_head_iff.mp h
+      simp only [hxs, or_false] at haux
+
+
+      -- Assumptions `h` and `h'` combined says that `k ∈ PathSupp flts i (a :: xs)`
+      by_cases hk : k ∈ PathSupp flts (flts.tr i a) xs
+      · -- `k` appears in PathSupp
+        apply ih haux.1
+        -- Now the goal is the second hypothesis of `ih`
+        -- `h'` implies second hypothesis of `ih`?!
+        -- Contrapositve with `h'` and use `language_BoundedPath_head_iff.mpr`
+        -- ACTUALLY, INSTEAD OF THE ABOVE, USE `hk` TO CONCLUDE THE GOAL
+        -- (Brooke do this first)
+        sorry
+      · -- `k` only appears at the end state
+        -- `hk` should contradict with `h` and `h'`
+        -- use `mem_PathSupp_of_neq_splitLast` and `splitLast_eq`
+        -- (Brooke do this second)
+        sorry
+    · -- The last `k` is equal to `flts.tr i a`
+      -- Cannot apply ih
+      -- Directly prove the goal from definition
+      sorry
+
     rcases hc with hc1 | hc2
     · simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt,
       not_and, not_forall, not_lt] at h h'
@@ -504,15 +547,6 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     --     sorry
     --   · exact ih (by simp only [mem_language, Accepts, pathSupp_head hxs] at h ⊢; grind)
     --       (by simp only [mem_language, Accepts, pathSupp_head hxs] at h h' ⊢; grind)
-
-lemma language_BoundedPath_head_iff {n : ℕ} {flts : FLTS (Fin n) Symbol}
-    {i j : Fin n} {k : ℕ} {a : Symbol} {xs : List Symbol} :
-    a :: xs ∈ language (BoundedPath.mk flts i j k) ↔
-    xs ∈ language (BoundedPath.mk flts (flts.tr i a) j k) ∧ (flts.tr i a < k ∨ xs = []) := by
-  simp only [mem_language, Accepts]
-  by_cases hxs : xs = []
-  · grind [PathSupp]
-  grind [pathSupp_head hxs]
 
 lemma splitLastCompl_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
