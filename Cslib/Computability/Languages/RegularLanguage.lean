@@ -501,7 +501,13 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     · -- The last `k` is equal to `flts.tr i a`
       -- Cannot apply ih
       -- Directly prove the goal from definition
-      sorry
+      rw [not_not] at hc1
+      rw [hc1]
+      have h1 : flts.tr i a = k := by grind
+      rcases hc with hc' | heq
+      · apply absurd hc1 hc'
+      · have haux := language_BoundedPath_head_iff.mp h
+        grind
 
     -- rcases hc with hc1 | hc2
     -- · simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt,
