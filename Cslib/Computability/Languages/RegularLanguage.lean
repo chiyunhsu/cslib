@@ -492,12 +492,32 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
         -- Contrapositve with `h'` and use `language_BoundedPath_head_iff.mpr`
         -- ACTUALLY, INSTEAD OF THE ABOVE, USE `hk` TO CONCLUDE THE GOAL
         -- (Brooke do this first)
-        sorry
+        intro sha
+        have h1 : splitLast flts (flts.tr i a) k xs = [] := by sorry
+
+        have h2 : flts.mtr (flts.tr i a) xs ≠ k := by sorry
+
+-- lemma splitLast_eq [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
+--     {s t : Fin n} {xs : List Symbol} (h : t ∉ PathSupp flts s xs) (h' : t = flts.mtr s xs) :
+--     splitLast flts s t xs = [] := by
+--   simpa [splitLastCompl_eq h h'] using splitLast_append' flts s t xs
+
+        apply mem_PathSupp_of_neq_splitLast at hc1
       · -- `k` only appears at the end state
         -- `hk` should contradict with `h` and `h'`
         -- use `mem_PathSupp_of_neq_splitLast` and `splitLast_eq`
         -- (Brooke do this second)
-        sorry
+        apply mem_PathSupp_of_neq_splitLast at hc1
+        have h2 : k = flts.mtr (flts.tr i a) xs := by grind
+        #check splitLast_eq -- h : t ∉ PathSupp flts s xs) (h' : t = flts.mtr s xs) : splitLast flts s t xs = [] (t = k, s = (flts.tr i a))
+        have h3 : splitLast flts (flts.tr i a) k xs = [] := by
+          apply splitLast_eq hk h2
+        rw [h3]
+        simp [Accepts] at haux
+        have h4 : k = j := by grind
+        simp [Accepts, PathSupp]
+        trivial
+
     · -- The last `k` is equal to `flts.tr i a`
       -- Cannot apply ih
       -- Directly prove the goal from definition
