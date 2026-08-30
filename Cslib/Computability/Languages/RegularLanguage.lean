@@ -493,16 +493,13 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
         -- ACTUALLY, INSTEAD OF THE ABOVE, USE `hk` TO CONCLUDE THE GOAL
         -- (Brooke do this first)
         intro sha
-        have h1 : splitLast flts (flts.tr i a) k xs = [] := by sorry
-
-        have h2 : flts.mtr (flts.tr i a) xs ≠ k := by sorry
-
+        simp [Accepts] at sha
+        grind
 -- lemma splitLast_eq [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
 --     {s t : Fin n} {xs : List Symbol} (h : t ∉ PathSupp flts s xs) (h' : t = flts.mtr s xs) :
 --     splitLast flts s t xs = [] := by
 --   simpa [splitLastCompl_eq h h'] using splitLast_append' flts s t xs
 
-        apply mem_PathSupp_of_neq_splitLast at hc1
       · -- `k` only appears at the end state
         -- `hk` should contradict with `h` and `h'`
         -- use `mem_PathSupp_of_neq_splitLast` and `splitLast_eq`
