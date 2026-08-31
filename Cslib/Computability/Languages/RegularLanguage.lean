@@ -496,7 +496,6 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
 --     {s t : Fin n} {xs : List Symbol} (h : t ∉ PathSupp flts s xs) (h' : t = flts.mtr s xs) :
 --     splitLast flts s t xs = [] := by
 --   simpa [splitLastCompl_eq h h'] using splitLast_append' flts s t xs
-
       · -- `k` only appears at the end state
         -- `hk` should contradict with `h` and `h'`
         -- use `mem_PathSupp_of_neq_splitLast` and `splitLast_eq`
@@ -509,9 +508,7 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
         rw [h3]
         simp [Accepts] at haux
         have h4 : k = j := by grind
-        simp [Accepts, PathSupp]
-        trivial
-
+        simp [Accepts, PathSupp, h4]
     · -- The last `k` is equal to `flts.tr i a`
       -- Cannot apply ih
       -- Directly prove the goal from definition
