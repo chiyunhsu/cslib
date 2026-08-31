@@ -459,7 +459,6 @@ lemma language_BoundedPath_head_iff {n : ℕ} {flts : FLTS (Fin n) Symbol}
   · grind [PathSupp]
   grind [pathSupp_head hxs]
 
-set_option pp.structureInstances false -- remove later; this just makes the goals easier to read
 lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
     (h : xs ∈ language (BoundedPath.mk flts i j (k.val + 1)))
@@ -485,24 +484,15 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
       by_cases hk : k ∈ PathSupp flts (flts.tr i a) xs
       · -- `k` appears in PathSupp
         apply ih haux.1
-        -- Now the goal is the second hypothesis of `ih`
-        -- `h'` implies second hypothesis of `ih`?!
-        -- Contrapositve with `h'` and use `language_BoundedPath_head_iff.mpr`
-        -- ACTUALLY, INSTEAD OF THE ABOVE, USE `hk` TO CONCLUDE THE GOAL
         -- (Brooke do this first)
         simp [Accepts]
         grind
--- lemma splitLast_eq [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
---     {s t : Fin n} {xs : List Symbol} (h : t ∉ PathSupp flts s xs) (h' : t = flts.mtr s xs) :
---     splitLast flts s t xs = [] := by
---   simpa [splitLastCompl_eq h h'] using splitLast_append' flts s t xs
       · -- `k` only appears at the end state
         -- `hk` should contradict with `h` and `h'`
         -- use `mem_PathSupp_of_neq_splitLast` and `splitLast_eq`
         -- (Brooke do this second)
         apply mem_PathSupp_of_neq_splitLast at hc1
         have h2 : k = flts.mtr (flts.tr i a) xs := by grind
-        #check splitLast_eq -- h : t ∉ PathSupp flts s xs) (h' : t = flts.mtr s xs) : splitLast flts s t xs = [] (t = k, s = (flts.tr i a))
         have h3 : splitLast flts (flts.tr i a) k xs = [] := by
           apply splitLast_eq hk h2
         rw [h3]
@@ -512,52 +502,8 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     · -- The last `k` is equal to `flts.tr i a`
       -- Cannot apply ih
       -- Directly prove the goal from definition
+      -- (Brooke can do this last)
       grind [language_BoundedPath_head_iff.mp h]
-
-    -- rcases hc with hc1 | hc2
-    -- · simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt,
-    --   not_and, not_forall, not_lt] at h h'
-    --   rw [mtr_head_eq] at h h'
-    --   apply ih
-    --   simp only [mem_language, Accepts]
-    --   by_cases hxs : xs = []
-    --   · aesop
-    --   · rw [pathSupp_head hxs] at h
-    --     aesop
-    --   simp only [mem_language, Accepts]
-    -- · simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt,
-    --   not_and, not_forall, not_lt] at h h'
-    --   rw [mtr_head_eq] at h h'
-    --   by_cases hxs : xs = []
-    --   · simp only [mem_language, Accepts]
-    --     subst hxs
-    --     simp only [splitLast, PathSupp]
-    --     grind
-    --   · rw [pathSupp_head hxs] at h
-    --     have : xs ∈ language (BoundedPath.mk flts (flts.tr i a) j (↑k + 1)) := by
-    --       simp [mem_language, Accepts]
-    --       grind
-    --     have ih' := ih this
-    --     apply ih'
-    --     sorry
-      -- Prove the goal from simplifying `h'`, in a similar way we simplify `h`
-
-      -- have : PathSupp flts i (a :: xs) = PathSupp flts (flts.tr i a) xs ∪ {flts.tr i a} := by sorry
--- lemma pathSupp_head {State : Type*} {flts : FLTS State Symbol} {s : State}
---     {a : Symbol} {xs : List Symbol} (hxs : xs ≠ []) :
---     PathSupp flts s (a :: xs) = {flts.tr s a} ∪ PathSupp flts (flts.tr s a) xs := by
---   grind [PathSupp]
-
-
-    -- by_cases hxs : xs = []
-    -- · aesop
-    -- · by_cases flts.tr i a = k
-    --   · apply ih
-    --     simp only [mem_language, Accepts, pathSupp_head hxs] at h ⊢
-    --     grind
-    --     sorry
-    --   · exact ih (by simp only [mem_language, Accepts, pathSupp_head hxs] at h ⊢; grind)
-    --       (by simp only [mem_language, Accepts, pathSupp_head hxs] at h h' ⊢; grind)
 
 lemma splitLastCompl_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol}
