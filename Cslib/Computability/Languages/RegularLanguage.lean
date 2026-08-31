@@ -481,8 +481,6 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
       -- First hypothesis of `ih` is implied by `h`
       have haux := language_BoundedPath_head_iff.mp h
       simp only [hxs, or_false] at haux
-
-
       -- Assumptions `h` and `h'` combined says that `k ∈ PathSupp flts i (a :: xs)`
       by_cases hk : k ∈ PathSupp flts (flts.tr i a) xs
       · -- `k` appears in PathSupp
@@ -492,8 +490,7 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
         -- Contrapositve with `h'` and use `language_BoundedPath_head_iff.mpr`
         -- ACTUALLY, INSTEAD OF THE ABOVE, USE `hk` TO CONCLUDE THE GOAL
         -- (Brooke do this first)
-        intro sha
-        simp [Accepts] at sha
+        simp [Accepts]
         grind
 -- lemma splitLast_eq [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
 --     {s t : Fin n} {xs : List Symbol} (h : t ∉ PathSupp flts s xs) (h' : t = flts.mtr s xs) :
