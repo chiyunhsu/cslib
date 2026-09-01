@@ -492,13 +492,9 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
         -- use `mem_PathSupp_of_neq_splitLast` and `splitLast_eq`
         -- (Brooke do this second)
         apply mem_PathSupp_of_neq_splitLast at hc1
-        have h2 : k = flts.mtr (flts.tr i a) xs := by grind
-        have h3 : splitLast flts (flts.tr i a) k xs = [] := by
-          apply splitLast_eq hk h2
-        rw [h3]
+        rw [splitLast_eq hk (by grind)]
         simp [Accepts] at haux
-        have h4 : k = j := by grind
-        simp [Accepts, PathSupp, h4]
+        simp [Accepts, PathSupp]
     · -- The last `k` is equal to `flts.tr i a`
       -- Cannot apply ih
       -- Directly prove the goal from definition
