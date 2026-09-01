@@ -452,11 +452,11 @@ theorem splitLastCompl_nonempty_iff_mem_PathSupp {n : ℕ} {flts : FLTS (Fin n) 
 --   | cons a xs ih =>
 --   by_cases hxs : xs = [] <;> grind [splitLastCompl, PathSupp]
 
-theorem mtr_head_eq {State Label : Type*} {flts : FLTS State Label} {s : State}
-    {x : Label} {xs : List Label} : flts.mtr s (x :: xs) = flts.mtr (flts.tr s x) xs := by grind
+-- theorem mtr_head_eq {State Label : Type*} {flts : FLTS State Label} {s : State}
+--     {x : Label} {xs : List Label} : flts.mtr s (x :: xs) = flts.mtr (flts.tr s x) xs := by grind
 
-theorem mtr_append_eq {State Label : Type*} {flts : FLTS State Label} {s : State}
-    {xs ys : List Label} : flts.mtr s (xs ++ ys) = flts.mtr (flts.mtr s xs) ys := by grind
+-- theorem mtr_append_eq {State Label : Type*} {flts : FLTS State Label} {s : State}
+--     {xs ys : List Label} : flts.mtr s (xs ++ ys) = flts.mtr (flts.mtr s xs) ys := by grind
 
 lemma splitLast_aux [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     {i j k : Fin n} {xs : List Symbol} {a : Symbol}
@@ -465,7 +465,7 @@ lemma splitLast_aux [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
     (hc : splitLast flts (flts.tr i a) k xs = xs ∧ flts.tr i a ≠ k) : False := by
   simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt, not_and,
       not_forall, not_lt, ne_eq] at *
-  simp only [mtr_head_eq] at *
+  -- simp only [mtr_head_eq] at *
   simp only [h, forall_const] at h'
   obtain ⟨x, ⟨hx, hxk⟩⟩ := h'
   have eq := le_antisymm (h.2 x hx) hxk
@@ -558,7 +558,8 @@ lemma splitLastCompl_mem {n : ℕ} {flts : FLTS (Fin n) Symbol}
       · have eq : k = flts.mtr (flts.tr i a) xs := by
           simpa [hk] using (splitLastCompl_nonempty_iff_mem_PathSupp hxs).mp hc1
         rw [splitLastCompl_eq hk eq]
-        simpa [← mtr_head_eq, eq, h.1] using haux.1
+        grind [h.1]
+        -- simpa [← mtr_head_eq, eq, h.1] using haux.1
     · rw [not_not] at hc1
       simpa [hc1, Accepts, PathSupp, FLTS.mtr] using hc
 
@@ -642,8 +643,10 @@ lemma splitFirstCompl_mem {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {
     splitFirstCompl flts i k xs ∈ language (BddPath.mk flts k k (k.val + 1)) := by
   have h' := splitFirst_mem h
   simp only [mem_language, Accepts] at h h' ⊢
-  rw [← splitFirst_append flts i k xs, mtr_append_eq] at h
-  refine ⟨by simpa [h'.1] using h.1, ?_⟩
+  -- rw [← splitFirst_append flts i k xs, mtr_append_eq] at h
+  -- refine ⟨by simpa [h'.1] using h.1, ?_⟩
+  rw [← splitFirst_append flts i k xs] at h
+  refine ⟨by grind, ?_⟩
   by_cases splitFirst flts i k xs = [] ∨ splitFirstCompl flts i k xs = []
   · grind [PathSupp]
   grind [pathSupp_append]
