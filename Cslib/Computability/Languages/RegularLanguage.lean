@@ -514,19 +514,15 @@ lemma splitLast_mem [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
       by_cases hk : k ∈ PathSupp flts (flts.tr i a) xs
       · -- `k` appears in PathSupp
         apply ih haux.1
-        -- (Brooke do this first)
         simp [Accepts]
         grind
       · -- `k` only appears at the end state
         -- `hk` should contradict with `h` and `h'`
-        -- use `mem_PathSupp_of_neq_splitLast` and `splitLast_eq`
-        -- (Brooke do this second)
         apply (splitLast_neq_iff_mem_PathSupp hxs).mp at hc1
         simp_all [Accepts, PathSupp, splitLast_eq]
     · -- The last `k` is equal to `flts.tr i a`
       -- Cannot apply ih
       -- Directly prove the goal from definition
-      -- (Brooke can do this last)
       grind [language_bddpath_head_iff.mp h]
 
 lemma splitLastCompl_mem {n : ℕ} {flts : FLTS (Fin n) Symbol}
