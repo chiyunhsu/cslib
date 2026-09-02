@@ -512,7 +512,7 @@ theorem language_dfa_eq_regex_of_singleton_accept {dfa : DA.FinAcc (Fin n) Symbo
 end Regex
 
 theorem regex_of_dfa_singleton_accept [Finite Symbol] {State : Type*} [Finite State]
-    {dfa : DA.FinAcc State Symbol} (h : ∃ s, dfa.accept = {s}) :
+    (dfa : DA.FinAcc State Symbol) (h : ∃ s, dfa.accept = {s}) :
     ∃ r : RegularExpression Symbol, language dfa = r.matches' := by
   have : Fintype State := Fintype.ofFinite State
   let e := Fintype.equivFin State
