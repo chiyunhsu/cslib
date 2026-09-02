@@ -14,6 +14,7 @@ public import Cslib.Computability.Automata.NA.Loop
 public import Cslib.Computability.Automata.NA.Reverse
 public import Cslib.Computability.Automata.NA.ToDA
 public import Cslib.Computability.Automata.Acceptors.Acceptor
+-- public import Cslib.Computability.Languages.KleeneAlgorithm
 public import Mathlib.Computability.DFA
 public import Mathlib.Computability.RegularExpressions
 public import Mathlib.Data.Finite.Sum
@@ -240,10 +241,10 @@ theorem IsRegular.regex {r : RegularExpression Symbol} :
   | star P hP => grind [RegularExpression.matches', IsRegular.kstar]
 
 /- We use Kleene's Algorithm for DFA to prove a regular language can be expressed as a regex. -/
-section RegularExpression
 
 open RegularExpression
 
+-- We do not need this anymore
 -- Ask Chou whether to add reindex lemma for cslib DFA,
 -- rather than using reindex lemma for mathlib DFA.
 theorem IsRegular.iff_dfa' {l : Language Symbol} :
@@ -722,20 +723,21 @@ theorem language_bddpath_eq_regex [Fintype Symbol] {n k : ℕ} {i j : Fin n}
     simp only [matches'_add, matches'_mul, matches'_star]
     grind
 
-lemma aux {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
-    language dfa = language (BddPath.mk dfa.toFLTS dfa.start s n) := by
-  ext xs
-  simp only [mem_language, Accepts]
-  grind
+-- `aux` is almost the same as `language_bddpath_eq_dfa`
+-- lemma aux {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
+--     language dfa = language (BddPath.mk dfa.toFLTS dfa.start s n) := by
+--   ext xs
+--   simp only [mem_language, Accepts]
+--   grind
 
 /- IsRegular.iff_regex in the situation where the there is a single accepting state -/
 theorem acc_singleton [Fintype Symbol] {n : ℕ} {s : Fin n} {dfa : DA.FinAcc (Fin n) Symbol}
     (h : dfa.accept = {s}) : language dfa = matches' (Regex dfa.toFLTS dfa.start s n) := by
-  rw [aux h]
-  exact language_bddpath_eq_regex
+  simp [← language_bddpath_eq_regex, language, Accepts, h]
+  rfl
 
 /- Modified from Yi-Siong's PR: https://github.com/leanprover-community/mathlib4/pull/35600 -/
-theorem matches'_sum (L : List (RegularExpression Symbol)) :
+theorem matches'_sum' {α : Type*} (L : List (RegularExpression α)) :
     (L.sum).matches' = (L.map matches').sum := by
   induction L with
   | nil => simp
@@ -744,7 +746,7 @@ theorem matches'_sum (L : List (RegularExpression Symbol)) :
 noncomputable instance {n : ℕ} (dfa : DA.FinAcc (Fin n) Symbol) :
     Fintype dfa.accept := Fintype.ofFinite dfa.accept
 
-theorem language_sum {n : ℕ} {dfa : DA.FinAcc (Fin n) Symbol} :
+theorem language_sum' {n : ℕ} {dfa : DA.FinAcc (Fin n) Symbol} :
     language dfa = (((dfa.accept.toFinset).sort (· ≤ ·)).map
     (fun s ↦ language {dfa with accept := {s}})).sum := by
   ext xs
@@ -759,26 +761,84 @@ theorem language_sum {n : ℕ} {dfa : DA.FinAcc (Fin n) Symbol} :
   simp only [memsum, Finset.mem_sort, Set.mem_toFinset, mem_language]
   grind [Accepts]
 
-theorem IsRegular.iff_regex [Finite Symbol] {l : Language Symbol} :
+theorem IsRegular.iff_regex' [Finite Symbol] {l : Language Symbol} :
     l.IsRegular ↔ ∃ r : RegularExpression Symbol, l = matches' r := by
   refine ⟨fun h => ?_, fun ⟨r, hr⟩ => hr ▸ IsRegular.regex⟩
   obtain ⟨n, dfa, rfl⟩ := Cslib.Language.IsRegular.iff_dfa'.mp h
   set acc_List : List (Fin n) := (dfa.accept.toFinset).sort (· ≤ ·) with h_acc
-  rw [language_sum]
+  rw [language_sum']
   let : Fintype Symbol := Fintype.ofFinite Symbol
   let regex :=
     (acc_List.map (fun i => Regex dfa.toFLTS (dfa.start) i n)).sum
   use regex
-  simp only [matches'_sum, regex]
+  simp only [matches'_sum', regex]
   apply congrArg
   rw [← h_acc, List.map_map]
-  simp only [map_inj_left, Function.comp_apply]
-  suffices h :
-    (fun s => language {dfa with accept := {s}}) =
-    (fun i => matches' (Regex dfa.toFLTS dfa.start i n)) by exact fun i hi ↦ congrFun h i
-  funext s
-  exact acc_singleton rfl
+  simp only [map_inj_left]
+  have (s : Fin n) : language {dfa with accept := {s}} =
+    matches' (Regex dfa.toFLTS dfa.start s n) := acc_singleton rfl
+  exact fun s hs ↦ congrFun (funext this) s
 
-end RegularExpression
+-- Adding this theorem from KleeneAlgorithm.lean before correcting import
+theorem regex_of_dfa_singleton_accept [Finite Symbol] {State : Type*} [Finite State]
+    (dfa : DA.FinAcc State Symbol) (h : ∃ s, dfa.accept = {s}) :
+    ∃ r : RegularExpression Symbol, language dfa = matches' r := by
+  have : Fintype State := Fintype.ofFinite State
+  let e := Fintype.equivFin State
+  obtain ⟨s, h⟩ := h
+  set dfa' := DA.FinAcc.mk {tr := fun s a => e (dfa.tr (e.symm s) a), start := (e dfa.start)} {e s}
+    with hdfa'
+  have language_eq : language dfa = language dfa' := by
+    ext xs
+    have dfa_eq : dfa'.mtr dfa'.start xs = e (dfa.mtr dfa.start xs) := by
+      induction xs using List.reverseRec with
+      | nil => grind
+      | append_singleton xs x ih => grind
+    simp only [mem_language, Accepts, h, hdfa', Set.mem_singleton_iff]
+    rw [dfa_eq]
+    simp
+  have : Fintype Symbol := Fintype.ofFinite Symbol
+  simpa [language_eq] using  ⟨_, acc_singleton (by dsimp)⟩
+
+/-- We will only retain the following codes in `RegularLanguage.lean` at the end. -/
+theorem matches'_sum {α : Type*} (L : List (RegularExpression α)) :
+    (L.sum).matches' = (L.map matches').sum := by
+  induction L with
+  | nil => simp
+  | cons b L' ih => simp [ih]
+
+noncomputable instance {State : Type*} [Fintype State] (dfa : DA.FinAcc State Symbol) :
+    Fintype dfa.accept := Fintype.ofFinite dfa.accept
+
+theorem language_sum {State : Type*} [Fintype State] {dfa : DA.FinAcc State Symbol} :
+    language dfa = (((dfa.accept.toFinset).toList).map
+    (fun s ↦ language {dfa with accept := {s}})).sum := by
+  ext xs
+  simp only [mem_language]
+  have memsum (l : List State) : xs ∈ (l.map (fun s ↦ language {dfa with accept := {s}})).sum
+  ↔ ∃ s ∈ l, xs ∈ language {dfa with accept := {s}} := by
+    induction l with
+    | nil => simp
+    | cons a l ih =>
+      simp only [List.map_cons, List.sum_cons, Language.mem_add, List.mem_cons, ih]
+      grind
+  rw [memsum]
+  simp [Accepts]
+
+theorem IsRegular.iff_regex [Finite Symbol] {l : Language Symbol} :
+    l.IsRegular ↔ ∃ r : RegularExpression Symbol, l = matches' r := by
+  refine ⟨fun h => ?_, fun ⟨r, hr⟩ => hr ▸ IsRegular.regex⟩
+  obtain ⟨State, _, dfa, rfl⟩ := Cslib.Language.IsRegular.iff_dfa.mp h
+  have : Fintype State := Fintype.ofFinite State
+  rw [language_sum]
+  have : Fintype Symbol := Fintype.ofFinite Symbol
+  let regex := (dfa.accept.toFinset.toList.map
+    (fun s => (regex_of_dfa_singleton_accept {dfa with accept := {s}} (by simp)).choose)).sum
+  use regex
+  simp only [matches'_sum, regex]
+  apply congrArg List.sum
+  have (s : State) :=
+    (regex_of_dfa_singleton_accept (dfa := {dfa with accept := {s}}) (by simp)).choose_spec
+  simpa using fun s hs ↦ congrFun (funext this) s
 
 end Cslib.Language

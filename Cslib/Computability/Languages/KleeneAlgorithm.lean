@@ -84,8 +84,7 @@ theorem language_bddpath_head_iff {n k : ℕ} {flts : FLTS (Fin n) Symbol} {i j 
 
 theorem language_bddpath_eq_dfa {n k : ℕ} (flts : FLTS (Fin n) Symbol) (i j : Fin n) (hk : n ≤ k) :
     language (BddPath.mk flts i j k) = language (DA.FinAcc.mk {tr := flts.tr, start := i} {j}) := by
-  ext xs
-  simp only [mem_language, Accepts]
+  simp [language, Accepts]
   grind
 
 open List
@@ -453,7 +452,19 @@ lemma language_bddpath_kstar {n : ℕ} (flts : FLTS (Fin n) Symbol) (k : Fin n) 
 
 end kstar
 
-open Computability
+open Computability RegularExpression
+open scoped DA DA.FinAcc
+
+section Regex
+
+theorem mem_sum_matches'_iff {α : Type*} (L : List (RegularExpression α)) (x : List α) :
+    x ∈ (L.sum).matches' ↔ ∃ P ∈ L, x ∈ P.matches' := by
+  induction L with
+  | nil => simp
+  | cons head tail ih =>
+  simp only [sum_cons, matches', Language.mem_add, ih, mem_cons, exists_eq_or_imp]
+
+variable [Fintype Symbol]
 /-
 Regex i j k is the regex for the path from state i to state j passing through states < k.
 When k = 0, i = j, the regex is ε union all characters from state i to state i.
@@ -461,7 +472,7 @@ When k = 0, i ≠ j, the regex is all characters from state i to state j.
 For k + 1, the regex is the union of Regex i j k and
 (Regex i k k) (Regex k k k)∗ (Regex k j k).
 -/
-noncomputable def Regex [Fintype Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol)
+noncomputable def Regex {n : ℕ} (flts : FLTS (Fin n) Symbol)
     (i j : Fin n) : ℕ → RegularExpression Symbol
   | 0 =>
     let chars := (Finset.univ.filter
@@ -473,19 +484,7 @@ noncomputable def Regex [Fintype Symbol] {n : ℕ} (flts : FLTS (Fin n) Symbol)
       let kFin : Fin n := ⟨k, by omega⟩
       Regex flts i j k + Regex flts i kFin k * (Regex flts kFin kFin k).star * Regex flts kFin j k
 
-open RegularExpression
-
-variable {α : Type*}
-
-theorem mem_sum_matches'_iff (L : List (RegularExpression α)) (x : List α) :
-    x ∈ (L.sum).matches' ↔ ∃ P ∈ L, x ∈ P.matches' := by
-  induction L with
-  | nil => simp
-  | cons head tail ih =>
-  simp only [sum_cons, matches', Language.mem_add, ih, mem_cons, exists_eq_or_imp]
-
-theorem language_bddpath_eq_regex [Fintype Symbol] {n k : ℕ} {i j : Fin n}
-    {flts : FLTS (Fin n) Symbol} :
+theorem language_bddpath_eq_regex {n k : ℕ} {flts : FLTS (Fin n) Symbol} {i j : Fin n} :
     language (BddPath.mk flts i j k) = (Regex flts i j k).matches' := by
   induction k generalizing i j with
   | zero =>
@@ -506,5 +505,33 @@ theorem language_bddpath_eq_regex [Fintype Symbol] {n k : ℕ} {i j : Fin n}
     rw [language_bddpath_splitLast (k := ⟨k, by omega⟩), language_bddpath_splitFirst,
       language_bddpath_kstar]
     grind [matches'_add, matches'_mul, matches'_star]
+
+/- IsRegular.iff_regex in the situation where the there is a single accepting state -/
+theorem language_dfa_eq_regex_of_singleton_accept {n : ℕ} {s : Fin n}
+    {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
+    language dfa = (Regex dfa.toFLTS dfa.start s n).matches' := by
+  simp [← language_bddpath_eq_regex, language, Accepts, h]
+  rfl
+
+end Regex
+
+theorem regex_of_dfa_singleton_accept [Finite Symbol] {State : Type*} (h_fin : Finite State)
+    {dfa : DA.FinAcc State Symbol} {s : State} (h : dfa.accept = {s}) :
+    ∃ r : RegularExpression Symbol, language dfa = matches' r := by
+  have : Fintype State := Fintype.ofFinite State
+  let e := Fintype.equivFin State
+  set dfa' := DA.FinAcc.mk {tr := fun s a => e (dfa.tr (e.symm s) a), start := (e dfa.start)} {e s}
+    with hdfa'
+  have language_eq : language dfa = language dfa' := by
+    ext xs
+    have dfa_eq : dfa'.mtr dfa'.start xs = e (dfa.mtr dfa.start xs) := by
+      induction xs using List.reverseRec with
+      | nil => grind
+      | append_singleton xs x ih => grind
+    simp only [mem_language, Accepts, h, hdfa', Set.mem_singleton_iff]
+    rw [dfa_eq]
+    simp
+  have : Fintype Symbol := Fintype.ofFinite Symbol
+  simpa [language_eq] using  ⟨_, language_dfa_eq_regex_of_singleton_accept (by dsimp)⟩
 
 end Cslib.Language
