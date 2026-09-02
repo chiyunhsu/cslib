@@ -61,6 +61,8 @@ end PathSupp
 
 open Automata Acceptor
 
+variable {n : ℕ}
+
 /-- A Bounded Path (`BddPath`) has states `Fin n` and accepts strings (lists of symbols)
 starting with state `start` and ending with state `finish`
 with the intermediate states less than `bound`. -/
@@ -69,12 +71,12 @@ structure BddPath (n : ℕ) (Symbol : Type*) extends FLTS (Fin n) Symbol where
   finish : Fin n
   bound : ℕ
 
-instance {n : ℕ} : Acceptor (BddPath n Symbol) Symbol where
-  Accepts (a : BddPath n Symbol) (xs : List Symbol) :=
-    a.mtr a.start xs = a.finish ∧ (∀ i ∈ PathSupp a.toFLTS a.start xs, i < a.bound)
+instance : Acceptor (BddPath n Symbol) Symbol where
+  Accepts (p : BddPath n Symbol) (xs : List Symbol) :=
+    p.mtr p.start xs = p.finish ∧ (∀ i ∈ PathSupp p.toFLTS p.start xs, i < p.bound)
 
-theorem language_bddpath_head_iff {n k : ℕ} {flts : FLTS (Fin n) Symbol} {i j : Fin n}
-   {a : Symbol} {xs : List Symbol} :
+theorem language_bddpath_head_iff {flts : FLTS (Fin n) Symbol} {i j : Fin n} {k : ℕ}
+    {a : Symbol} {xs : List Symbol} :
     a :: xs ∈ language (BddPath.mk flts i j k) ↔
     xs ∈ language (BddPath.mk flts (flts.tr i a) j k) ∧ (flts.tr i a < k ∨ xs = []) := by
   simp only [mem_language, Accepts]
@@ -82,7 +84,7 @@ theorem language_bddpath_head_iff {n k : ℕ} {flts : FLTS (Fin n) Symbol} {i j 
   · grind [PathSupp]
   grind [pathSupp_head hxs]
 
-theorem language_bddpath_eq_dfa {n k : ℕ} (flts : FLTS (Fin n) Symbol) (i j : Fin n) (hk : n ≤ k) :
+theorem language_bddpath_eq_dfa (flts : FLTS (Fin n) Symbol) (i j : Fin n) {k : ℕ} (hk : n ≤ k) :
     language (BddPath.mk flts i j k) = language (DA.FinAcc.mk {tr := flts.tr, start := i} {j}) := by
   simp [language, Accepts]
   grind
@@ -91,34 +93,36 @@ open List
 
 section splitLast
 
-/-- The function `splitLastCompl` sends a string to its longest prefix ending at state `t`.
-If the string ends at state `t`, then `splitLastCompl` returns the original string.
-If the string never passes through state `t` (starting state can be `t`),
+/-- Starting at state `i`, the function `splitLastCompl` sends a string to its longest prefix
+ending at state `k`.
+If the string ends at state `k`, then `splitLastCompl` returns the original string.
+If the string never passes through state `k` (starting state can be `k`),
 then `splitLastCompl` returns the empty string. -/
-def splitLastCompl {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) : List Symbol → List Symbol
+def splitLastCompl (flts : FLTS (Fin n) Symbol) (i k : Fin n) : List Symbol → List Symbol
   | [] => []
-  | a :: x => if (splitLastCompl flts (flts.tr s a) t x = []) ∧ flts.tr s a ≠ t then []
-  else a :: splitLastCompl flts (flts.tr s a) t x
+  | a :: x => if (splitLastCompl flts (flts.tr i a) k x = []) ∧ flts.tr i a ≠ k then []
+  else a :: splitLastCompl flts (flts.tr i a) k x
 
-theorem isPrefix_splitLastCompl {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n)
-    (xs : List Symbol) : IsPrefix (splitLastCompl flts s t xs) xs := by
-  induction xs generalizing s with
+theorem isPrefix_splitLastCompl (flts : FLTS (Fin n) Symbol) (i k : Fin n) (xs : List Symbol) :
+    IsPrefix (splitLastCompl flts i k xs) xs := by
+  induction xs generalizing i with
   | nil => simp [splitLastCompl]
   | cons a xs ih => grind [splitLastCompl]
 
-/-- The function `splitLast` sends a string to its shortest suffix starting at state `t`.
-If the string ends at state `t`, then `splitLast` returns the empty string.
-If the string never passes through state `t` (starting state can be `t`),
+/-- Starting at state `i`, the function `splitLast` sends a string to its shortest suffix
+starting at state `k`.
+If the string ends at state `k`, then `splitLast` returns the empty string.
+If the string never passes through state `k` (starting state can be `k`),
 then `splitLast` returns the original string. -/
-noncomputable def splitLast {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n)
-    (xs : List Symbol) : List Symbol := (isPrefix_splitLastCompl flts s t xs).choose
+noncomputable def splitLast (flts : FLTS (Fin n) Symbol) (i k : Fin n) (xs : List Symbol) :
+    List Symbol := (isPrefix_splitLastCompl flts i k xs).choose
 
-theorem splitLast_append {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
-    splitLastCompl flts s t xs ++ splitLast flts s t xs = xs := by
+theorem splitLast_append (flts : FLTS (Fin n) Symbol) (i k : Fin n) (xs : List Symbol) :
+    splitLastCompl flts i k xs ++ splitLast flts i k xs = xs := by
   grind [splitLastCompl, splitLast]
 
-theorem splitLast_head {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
-    {a : Symbol} : splitLast flts i k (a :: xs) =
+theorem splitLast_head (flts : FLTS (Fin n) Symbol) (i k : Fin n) (xs : List Symbol)
+    (a : Symbol) : splitLast flts i k (a :: xs) =
     (if splitLastCompl flts (flts.tr i a) k xs = [] ∧ flts.tr i a ≠ k then a :: xs
     else splitLast flts (flts.tr i a) k xs) := by grind [splitLast, splitLastCompl]
 
@@ -159,23 +163,21 @@ theorem splitLast_head {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs 
 --   rw [pathSupp_head hxs, Set.mem_union, Set.mem_singleton_iff] at h
 --   grind [splitLast', (isSuffix_splitLast' flts (flts.tr s a) t xs).length_le]
 
-theorem splitLastCompl_eq {n : ℕ} {flts : FLTS (Fin n) Symbol} {s t : Fin n}
-    {xs : List Symbol} (h : t ∉ PathSupp flts s xs) (h' : t = flts.mtr s xs) :
-    splitLastCompl flts s t xs = xs := by
-  induction xs generalizing s with
+theorem splitLastCompl_eq {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
+    (h : k ∉ PathSupp flts i xs) (h' : k = flts.mtr i xs) : splitLastCompl flts i k xs = xs := by
+  induction xs generalizing i with
   | nil => grind [splitLastCompl, PathSupp]
   | cons a xs ih =>
   by_cases hxs : xs = []
   · grind [splitLastCompl, PathSupp]
   rw [pathSupp_head hxs, Set.mem_union, Set.mem_singleton_iff] at h
-  grind [splitLastCompl, (isPrefix_splitLastCompl flts (flts.tr s a) t xs).length_le]
+  grind [splitLastCompl, (isPrefix_splitLastCompl flts (flts.tr i a) k xs).length_le]
   -- classical
   -- simpa [splitLast_eq h h'] using splitLast_append flts s t xs
 
-theorem splitLast_eq {n : ℕ} {flts : FLTS (Fin n) Symbol}
-    {s t : Fin n} {xs : List Symbol} (h : t ∉ PathSupp flts s xs) (h' : t = flts.mtr s xs) :
-    splitLast flts s t xs = [] := by
-  simpa [splitLastCompl_eq h h'] using splitLast_append flts s t xs
+theorem splitLast_eq {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
+    (h : k ∉ PathSupp flts i xs) (h' : k = flts.mtr i xs) : splitLast flts i k xs = [] := by
+  simpa [splitLastCompl_eq h h'] using splitLast_append flts i k xs
 
 -- theorem splitLast_neq_iff_mem_PathSupp' [DecidableEq Symbol] {n : ℕ} {flts : FLTS (Fin n) Symbol}
 --    {s t : Fin n} {xs : List Symbol} (hxs : xs ≠ []) :
@@ -188,32 +190,31 @@ theorem splitLast_eq {n : ℕ} {flts : FLTS (Fin n) Symbol}
 --   rw [pathSupp_head hxs', Set.mem_union, Set.mem_singleton_iff]
 --   grind [splitLast', (isSuffix_splitLast' flts (flts.tr s a) t xs).length_le]
 
-theorem splitLastCompl_nonempty_iff_mem_PathSupp {n : ℕ} {flts : FLTS (Fin n) Symbol}
-   {s t : Fin n} {xs : List Symbol} (hxs : xs ≠ []) :
-    ¬(splitLastCompl flts s t xs = []) ↔ t ∈ PathSupp flts s xs ∨ t = flts.mtr s xs := by
-  induction xs generalizing s with
+theorem splitLastCompl_nonempty_iff_mem_PathSupp {flts : FLTS (Fin n) Symbol} {i k : Fin n}
+    {xs : List Symbol} (hxs : xs ≠ []) :
+    ¬(splitLastCompl flts i k xs = []) ↔ k ∈ PathSupp flts i xs ∨ k = flts.mtr i xs := by
+  induction xs generalizing i with
   | nil => contradiction
   | cons a xs ih =>
   by_cases hxs' : xs = []
   · grind [splitLastCompl, PathSupp]
   rw [pathSupp_head hxs', Set.mem_union, Set.mem_singleton_iff]
-  grind [splitLastCompl, (isPrefix_splitLastCompl flts (flts.tr s a) t xs).length_le]
+  grind [splitLastCompl, (isPrefix_splitLastCompl flts (flts.tr i a) k xs).length_le]
   -- classical
   -- rw [← splitLast_neq_iff_mem_PathSupp hxs, not_iff_not]
   -- nth_rw 3 [← splitLast_append flts s t xs]
   -- simp
 
-theorem splitLast_neq_iff_mem_PathSupp {n : ℕ} {flts : FLTS (Fin n) Symbol}
-   {s t : Fin n} {xs : List Symbol} (hxs : xs ≠ []) :
-    ¬(splitLast flts s t xs = xs) ↔ t ∈ PathSupp flts s xs ∨ t = flts.mtr s xs := by
+theorem splitLast_neq_iff_mem_PathSupp {flts : FLTS (Fin n) Symbol} {i k : Fin n}
+    {xs : List Symbol} (hxs : xs ≠ []) :
+    ¬(splitLast flts i k xs = xs) ↔ k ∈ PathSupp flts i xs ∨ k = flts.mtr i xs := by
   rw [← splitLastCompl_nonempty_iff_mem_PathSupp hxs, not_iff_not]
-  nth_rw 2 [← splitLast_append flts s t xs]
+  nth_rw 2 [← splitLast_append flts i k xs]
   simp
 
-theorem splitLastCompl_aux {n : ℕ} {flts : FLTS (Fin n) Symbol}
-    {i j k : Fin n} {xs : List Symbol} {a : Symbol}
-    (h : a :: xs ∈ language (BddPath.mk flts i j (k.val + 1)))
-    (h' : a :: xs ∉ language (BddPath.mk flts i j k.val))
+theorem splitLastCompl_aux {flts : FLTS (Fin n) Symbol} {i j k : Fin n} {xs : List Symbol}
+    {a : Symbol} (h : a :: xs ∈ language (BddPath.mk flts i j (k + 1)))
+    (h' : a :: xs ∉ language (BddPath.mk flts i j k))
     (hc : splitLastCompl flts (flts.tr i a) k xs = [] ∧ flts.tr i a ≠ k) : False := by
   simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt, not_and,
       not_forall, not_lt, ne_eq] at *
@@ -231,11 +232,10 @@ theorem splitLastCompl_aux {n : ℕ} {flts : FLTS (Fin n) Symbol}
     contradiction
   · grind [(splitLastCompl_nonempty_iff_mem_PathSupp hxs).mpr (Or.inl hx2)]
 
-theorem splitLastCompl_mem {n : ℕ} {flts : FLTS (Fin n) Symbol}
-    {i j k : Fin n} {xs : List Symbol}
-    (h : xs ∈ language (BddPath.mk flts i j (k.val + 1)))
-    (h' : xs ∉ language (BddPath.mk flts i j k.val)) :
-    splitLastCompl flts i k xs ∈ language (BddPath.mk flts i k (k.val + 1)) := by
+theorem splitLastCompl_mem {flts : FLTS (Fin n) Symbol} {i j k : Fin n} {xs : List Symbol}
+    (h : xs ∈ language (BddPath.mk flts i j (k + 1)))
+    (h' : xs ∉ language (BddPath.mk flts i j k)) :
+    splitLastCompl flts i k xs ∈ language (BddPath.mk flts i k (k + 1)) := by
   induction xs generalizing i with
   | nil =>
   simp [Accepts, PathSupp] at h h'
@@ -260,15 +260,13 @@ theorem splitLastCompl_mem {n : ℕ} {flts : FLTS (Fin n) Symbol}
           simpa [hk] using (splitLastCompl_nonempty_iff_mem_PathSupp hxs).mp hc1
         rw [splitLastCompl_eq hk eq]
         grind [h.1]
-        -- simpa [← mtr_head_eq, eq, h.1] using haux.1
     · rw [not_not] at hc1
       simpa [hc1, Accepts, PathSupp, FLTS.mtr] using hc
 
-theorem splitLast_mem {n : ℕ} {flts : FLTS (Fin n) Symbol}
-    {i j k : Fin n} {xs : List Symbol}
-    (h : xs ∈ language (BddPath.mk flts i j (k.val + 1)))
-    (h' : xs ∉ language (BddPath.mk flts i j k.val)) :
-    splitLast flts i k xs ∈ language (BddPath.mk flts k j k.val) := by
+theorem splitLast_mem {flts : FLTS (Fin n) Symbol} {i j k : Fin n} {xs : List Symbol}
+    (h : xs ∈ language (BddPath.mk flts i j (k + 1)))
+    (h' : xs ∉ language (BddPath.mk flts i j k)) :
+    splitLast flts i k xs ∈ language (BddPath.mk flts k j k) := by
   induction xs generalizing i with
   | nil =>
   simp [Accepts, PathSupp] at h h'
@@ -306,7 +304,7 @@ theorem splitLast_mem {n : ℕ} {flts : FLTS (Fin n) Symbol}
       grind [splitLast_append, splitLastCompl_nonempty_iff_mem_PathSupp, pathSupp_head]
 
 -- The original path1
-theorem language_bddpath_splitLast {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
+theorem language_bddpath_splitLast (flts : FLTS (Fin n) Symbol) (i j k : Fin n) :
     language (BddPath.mk flts i j (k + 1)) = language (BddPath.mk flts i j k) +
     (language (BddPath.mk flts i k (k + 1)) * language (BddPath.mk flts k j k)) := by
   ext xs
@@ -317,7 +315,7 @@ theorem language_bddpath_splitLast {n : ℕ} (flts : FLTS (Fin n) Symbol) (i j k
     · left; exact h'
     right
     use splitLastCompl flts i k xs, splitLastCompl_mem h h',
-    splitLast flts i k xs,  splitLast_mem h h',
+    splitLast flts i k xs, splitLast_mem h h',
     splitLast_append flts _ _ _
   · rintro (h_left | ⟨ys, ⟨⟨hys, hsuppys⟩, ⟨zs, ⟨⟨hzs, hsuppzs⟩, happend⟩⟩⟩⟩)
     · simp only [mem_language, Accepts] at h_left ⊢
@@ -331,30 +329,31 @@ end splitLast
 
 section splitFirst
 
-/-- The function `splitFirst` sends a string to its shortest prefix ending at state `t`.
+/-- Starting from a state `i`, the function `splitFirst` sends a string to its shortest prefix
+ending at state `k`.
 The string is empty if and only if its `splitFirst` is empty.
-If the string never passes through state `t` (starting state can be `t`),
+If the string never passes through state `k` (starting state can be `k`),
 then `splitFirst` returns the original string. -/
-def splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) : List Symbol → List Symbol
+def splitFirst (flts : FLTS (Fin n) Symbol) (i k : Fin n) : List Symbol → List Symbol
   | [] => []
-  | a :: x => if flts.tr s a = t then [a] else a :: splitFirst flts (flts.tr s a) t x
+  | a :: x => if flts.tr i a = k then [a] else a :: splitFirst flts (flts.tr i a) k x
 
-lemma isPrefix_splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
-    IsPrefix (splitFirst flts s t xs) xs := by
-  induction xs generalizing s with
+theorem isPrefix_splitFirst (flts : FLTS (Fin n) Symbol) (i k : Fin n) (xs : List Symbol) :
+    IsPrefix (splitFirst flts i k xs) xs := by
+  induction xs generalizing i with
   | nil => simp [splitFirst]
   | cons a xs ih => grind [splitFirst]
 
-noncomputable def splitFirstCompl {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n)
-    (xs : List Symbol) : List Symbol := (isPrefix_splitFirst flts s t xs).choose
+noncomputable def splitFirstCompl (flts : FLTS (Fin n) Symbol) (i k : Fin n)
+    (xs : List Symbol) : List Symbol := (isPrefix_splitFirst flts i k xs).choose
 
-lemma splitFirst_append {n : ℕ} (flts : FLTS (Fin n) Symbol) (s t : Fin n) (xs : List Symbol) :
-    splitFirst flts s t xs ++ splitFirstCompl flts s t xs = xs := by
+theorem splitFirst_append (flts : FLTS (Fin n) Symbol) (i k : Fin n) (xs : List Symbol) :
+    splitFirst flts i k xs ++ splitFirstCompl flts i k xs = xs := by
   grind [splitFirst, splitFirstCompl]
 
-lemma splitFirst_mem {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
-    (h : xs ∈ (language (BddPath.mk flts i k (k.val + 1)))) :
-    splitFirst flts i k xs ∈ language (BddPath.mk flts i k k.val) := by
+theorem splitFirst_mem {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
+    (h : xs ∈ (language (BddPath.mk flts i k (k + 1)))) :
+    splitFirst flts i k xs ∈ language (BddPath.mk flts i k k) := by
   induction xs generalizing i with
   | nil => simpa [Accepts, splitFirst, PathSupp] using h
   | cons a xs ih =>
@@ -374,9 +373,9 @@ lemma splitFirst_mem {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : 
     rw [this, pathSupp_head hPath]
     grind
 
-lemma splitFirst_mem' {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
-    (hxs : xs ≠ []) (h : xs ∈ (language (BddPath.mk flts i k (k.val + 1)))) :
-    splitFirst flts i k xs ∈ language (BddPath.mk flts i k k.val) - 1 := by
+theorem splitFirst_mem_nonempty {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
+    (hxs : xs ≠ []) (h : xs ∈ (language (BddPath.mk flts i k (k + 1)))) :
+    splitFirst flts i k xs ∈ language (BddPath.mk flts i k k) - 1 := by
   rw [Language.mem_sub]
   refine ⟨splitFirst_mem h, ?_⟩
   simp only [Language.mem_one]
@@ -384,9 +383,9 @@ lemma splitFirst_mem' {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs :
   | nil => contradiction
   | cons a xs ih => grind [splitFirst]
 
-lemma splitFirstCompl_mem {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
-    (h : xs ∈ (language (BddPath.mk flts i k (k.val + 1)))) :
-    splitFirstCompl flts i k xs ∈ language (BddPath.mk flts k k (k.val + 1)) := by
+theorem splitFirstCompl_mem {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
+    (h : xs ∈ (language (BddPath.mk flts i k (k + 1)))) :
+    splitFirstCompl flts i k xs ∈ language (BddPath.mk flts k k (k + 1)) := by
   have h' := splitFirst_mem h
   simp only [mem_language, Accepts] at h h' ⊢
   rw [← splitFirst_append flts i k xs] at h
@@ -396,7 +395,7 @@ lemma splitFirstCompl_mem {n : ℕ} {flts : FLTS (Fin n) Symbol} {i k : Fin n} {
   grind [pathSupp_append]
 
 -- The original path2
-lemma language_bddpath_splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (i k : Fin n) :
+theorem language_bddpath_splitFirst (flts : FLTS (Fin n) Symbol) (i k : Fin n) :
     language (BddPath.mk flts i k (k + 1)) =
     language (BddPath.mk flts i k k) * language (BddPath.mk flts k k (k + 1)) := by
   ext xs
@@ -414,20 +413,19 @@ lemma language_bddpath_splitFirst {n : ℕ} (flts : FLTS (Fin n) Symbol) (i k : 
 
 end splitFirst
 
-section kstar
-
 open Computability
 
-lemma kstar_eq {α : Type*} (l : Language α) : l∗ = (l - 1)∗ := by
+section kstar
+
+theorem kstar_eq {α : Type*} (l : Language α) : l∗ = (l - 1)∗ := by
   ext x
   rw [Language.kstar_def_nonempty, Language.mem_kstar]
   exact ⟨fun ⟨S, hx, h⟩ => ⟨S, ⟨hx, fun y ys => h y ys⟩⟩,
     fun ⟨S, ⟨hx, h⟩⟩ => ⟨S, hx, fun y ys => h y ys⟩⟩
 
-lemma language_bddpath_kstar {n : ℕ} (flts : FLTS (Fin n) Symbol) (k : Fin n) :
+theorem language_bddpath_kstar (flts : FLTS (Fin n) Symbol) (k : Fin n) :
     language (BddPath.mk flts k k (k + 1)) = (language (BddPath.mk flts k k k))∗ := by
-  rw [← mul_one (language (BddPath.mk flts k k ↑k))∗]
-  rw [kstar_eq]
+  rw [← mul_one (language (BddPath.mk flts k k ↑k))∗, kstar_eq]
   refine (Language.self_eq_mul_add_iff (by simp [Language.mem_sub])).mp ?_
   -- mimic the proof of path2
   ext xs
@@ -437,7 +435,7 @@ lemma language_bddpath_kstar {n : ℕ} (flts : FLTS (Fin n) Symbol) (k : Fin n) 
     by_cases h' : xs ∈ (1 : Language Symbol)
     · grind
     left
-    use splitFirst flts k k xs, splitFirst_mem' h' h,
+    use splitFirst flts k k xs, splitFirst_mem_nonempty h' h,
       splitFirstCompl flts k k xs, splitFirstCompl_mem h,
       splitFirst_append flts _ _ _
   · rintro (⟨ys, ⟨⟨⟨hys, hsuppys⟩, hysnotempty⟩, ⟨zs, ⟨⟨hzs, hsuppzs⟩, happend⟩⟩⟩⟩ | hempty)
@@ -452,8 +450,7 @@ lemma language_bddpath_kstar {n : ℕ} (flts : FLTS (Fin n) Symbol) (k : Fin n) 
 
 end kstar
 
-open Computability RegularExpression
-open scoped DA DA.FinAcc
+open RegularExpression
 
 section Regex
 
@@ -465,6 +462,7 @@ theorem mem_sum_matches'_iff {α : Type*} (L : List (RegularExpression α)) (x :
   simp only [sum_cons, matches', Language.mem_add, ih, mem_cons, exists_eq_or_imp]
 
 variable [Fintype Symbol]
+
 /-
 Regex i j k is the regex for the path from state i to state j passing through states < k.
 When k = 0, i = j, the regex is ε union all characters from state i to state i.
@@ -472,8 +470,7 @@ When k = 0, i ≠ j, the regex is all characters from state i to state j.
 For k + 1, the regex is the union of Regex i j k and
 (Regex i k k) (Regex k k k)∗ (Regex k j k).
 -/
-noncomputable def Regex {n : ℕ} (flts : FLTS (Fin n) Symbol)
-    (i j : Fin n) : ℕ → RegularExpression Symbol
+noncomputable def Regex (flts : FLTS (Fin n) Symbol) (i j : Fin n) : ℕ → RegularExpression Symbol
   | 0 =>
     let chars := (Finset.univ.filter
       (fun x : Symbol ↦ flts.tr i x = j)).toList.map RegularExpression.char
@@ -484,7 +481,7 @@ noncomputable def Regex {n : ℕ} (flts : FLTS (Fin n) Symbol)
       let kFin : Fin n := ⟨k, by omega⟩
       Regex flts i j k + Regex flts i kFin k * (Regex flts kFin kFin k).star * Regex flts kFin j k
 
-theorem language_bddpath_eq_regex {n k : ℕ} {flts : FLTS (Fin n) Symbol} {i j : Fin n} :
+theorem language_bddpath_eq_regex {k : ℕ} {flts : FLTS (Fin n) Symbol} {i j : Fin n} :
     language (BddPath.mk flts i j k) = (Regex flts i j k).matches' := by
   induction k generalizing i j with
   | zero =>
@@ -506,20 +503,20 @@ theorem language_bddpath_eq_regex {n k : ℕ} {flts : FLTS (Fin n) Symbol} {i j 
       language_bddpath_kstar]
     grind [matches'_add, matches'_mul, matches'_star]
 
-/- IsRegular.iff_regex in the situation where the there is a single accepting state -/
-theorem language_dfa_eq_regex_of_singleton_accept {n : ℕ} {s : Fin n}
-    {dfa : DA.FinAcc (Fin n) Symbol} (h : dfa.accept = {s}) :
-    language dfa = (Regex dfa.toFLTS dfa.start s n).matches' := by
+-- The original `acc_singleton`
+theorem language_dfa_eq_regex_of_singleton_accept {dfa : DA.FinAcc (Fin n) Symbol} {s : Fin n}
+    (h : dfa.accept = {s}) : language dfa = (Regex dfa.toFLTS dfa.start s n).matches' := by
   simp [← language_bddpath_eq_regex, language, Accepts, h]
   rfl
 
 end Regex
 
-theorem regex_of_dfa_singleton_accept [Finite Symbol] {State : Type*} (h_fin : Finite State)
-    {dfa : DA.FinAcc State Symbol} {s : State} (h : dfa.accept = {s}) :
-    ∃ r : RegularExpression Symbol, language dfa = matches' r := by
+theorem regex_of_dfa_singleton_accept [Finite Symbol] {State : Type*} [Finite State]
+    {dfa : DA.FinAcc State Symbol} (h : ∃ s, dfa.accept = {s}) :
+    ∃ r : RegularExpression Symbol, language dfa = r.matches' := by
   have : Fintype State := Fintype.ofFinite State
   let e := Fintype.equivFin State
+  obtain ⟨s, h⟩ := h
   set dfa' := DA.FinAcc.mk {tr := fun s a => e (dfa.tr (e.symm s) a), start := (e dfa.start)} {e s}
     with hdfa'
   have language_eq : language dfa = language dfa' := by

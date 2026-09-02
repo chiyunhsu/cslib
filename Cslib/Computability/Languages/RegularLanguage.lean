@@ -782,7 +782,7 @@ theorem IsRegular.iff_regex' [Finite Symbol] {l : Language Symbol} :
 -- Adding this theorem from KleeneAlgorithm.lean before correcting import
 theorem regex_of_dfa_singleton_accept [Finite Symbol] {State : Type*} [Finite State]
     (dfa : DA.FinAcc State Symbol) (h : ∃ s, dfa.accept = {s}) :
-    ∃ r : RegularExpression Symbol, language dfa = matches' r := by
+    ∃ r : RegularExpression Symbol, language dfa = r.matches' := by
   have : Fintype State := Fintype.ofFinite State
   let e := Fintype.equivFin State
   obtain ⟨s, h⟩ := h
