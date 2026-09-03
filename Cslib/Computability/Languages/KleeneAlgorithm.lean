@@ -119,7 +119,7 @@ noncomputable def splitLast (flts : FLTS (Fin n) Symbol) (i k : Fin n) (xs : Lis
 
 theorem splitLast_append (flts : FLTS (Fin n) Symbol) (i k : Fin n) (xs : List Symbol) :
     splitLastCompl flts i k xs ++ splitLast flts i k xs = xs := by
-  grind [splitLastCompl, splitLast]
+  grind [splitLast]
 
 theorem splitLast_head (flts : FLTS (Fin n) Symbol) (i k : Fin n) (xs : List Symbol)
     (a : Symbol) : splitLast flts i k (a :: xs) =
@@ -216,8 +216,8 @@ theorem splitLastCompl_aux {flts : FLTS (Fin n) Symbol} {i j k : Fin n} {xs : Li
     {a : Symbol} (h : a :: xs ∈ language (BddPath.mk flts i j (k + 1)))
     (h' : a :: xs ∉ language (BddPath.mk flts i j k))
     (hc : splitLastCompl flts (flts.tr i a) k xs = [] ∧ flts.tr i a ≠ k) : False := by
-  simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, Fin.val_fin_lt, not_and,
-      not_forall, not_lt, ne_eq] at *
+  simp only [mem_language, Accepts, Order.lt_add_one_iff, Fin.val_fin_le, not_and,
+      not_forall, not_lt] at *
   simp only [h, forall_const] at h'
   obtain ⟨x, ⟨hx, hxk⟩⟩ := h'
   have eq := le_antisymm (h.2 x hx) hxk
@@ -271,7 +271,6 @@ theorem splitLast_mem {flts : FLTS (Fin n) Symbol} {i j k : Fin n} {xs : List Sy
   contradiction
   | cons a xs ih =>
   have h'' := splitLastCompl_mem h h'
-  simp only [splitLastCompl] at h''
   rw [splitLast_head]
   split_ifs with hc
   · exfalso; exact splitLastCompl_aux h h' hc
@@ -282,7 +281,6 @@ theorem splitLast_mem {flts : FLTS (Fin n) Symbol} {i j k : Fin n} {xs : List Sy
       · grind [splitLast]
       -- First hypothesis of `ih` is implied by `h`
       have haux := language_bddpath_head_iff.mp h
-      simp only [hxs, or_false] at haux
       -- Assumptions `h` and `h'` combined says that `k ∈ PathSupp flts i (a :: xs)`
       by_cases hk : k ∈ PathSupp flts (flts.tr i a) xs
       · -- `k` appears in PathSupp
