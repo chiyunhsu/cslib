@@ -170,8 +170,8 @@ theorem splitLastCompl_eq {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List 
   | cons a xs ih =>
   by_cases hxs : xs = []
   · grind [splitLastCompl, PathSupp]
-  grind [splitLastCompl, (isPrefix_splitLastCompl flts (flts.tr i a) k xs).length_le,
-  pathSupp_head hxs]
+  grind [pathSupp_head hxs, splitLastCompl,
+    (isPrefix_splitLastCompl flts (flts.tr i a) k xs).length_le]
   -- classical
   -- simpa [splitLast_eq h h'] using splitLast_append flts s t xs
 
@@ -198,8 +198,8 @@ theorem splitLastCompl_nonempty_iff_mem_PathSupp {flts : FLTS (Fin n) Symbol} {i
   | cons a xs ih =>
   by_cases hxs' : xs = []
   · grind [splitLastCompl, PathSupp]
-  grind [splitLastCompl, (isPrefix_splitLastCompl flts (flts.tr i a) k xs).length_le,
-  pathSupp_head hxs']
+  grind [pathSupp_head hxs', splitLastCompl,
+    (isPrefix_splitLastCompl flts (flts.tr i a) k xs).length_le]
   -- classical
   -- rw [← splitLast_neq_iff_mem_PathSupp hxs, not_iff_not]
   -- nth_rw 3 [← splitLast_append flts s t xs]
@@ -256,8 +256,9 @@ theorem splitLastCompl_mem {flts : FLTS (Fin n) Symbol} {i j k : Fin n} {xs : Li
       · apply ih haux.1
         simp [Accepts]
         grind
-      · grind [h.1, splitLastCompl_eq, by
-          simpa [hk] using (splitLastCompl_nonempty_iff_mem_PathSupp hxs).mp hc1]
+      · have eq : k = flts.mtr (flts.tr i a) xs := by
+          simpa [hk] using (splitLastCompl_nonempty_iff_mem_PathSupp hxs).mp hc1
+        grind [splitLastCompl_eq, h.1]
     · rw [not_not] at hc1
       simpa [hc1, Accepts, PathSupp, FLTS.mtr] using hc
 
