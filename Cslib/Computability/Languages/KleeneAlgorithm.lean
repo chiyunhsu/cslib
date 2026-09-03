@@ -345,7 +345,7 @@ noncomputable def splitFirstCompl (flts : FLTS (Fin n) Symbol) (i k : Fin n)
 
 theorem splitFirst_append (flts : FLTS (Fin n) Symbol) (i k : Fin n) (xs : List Symbol) :
     splitFirst flts i k xs ++ splitFirstCompl flts i k xs = xs := by
-  grind [splitFirst, splitFirstCompl]
+  grind [splitFirstCompl]
 
 theorem splitFirst_mem {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
     (h : xs ∈ (language (BddPath.mk flts i k (k + 1)))) :
@@ -353,7 +353,7 @@ theorem splitFirst_mem {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Sym
   induction xs generalizing i with
   | nil => simpa [Accepts, splitFirst, PathSupp] using h
   | cons a xs ih =>
-  simp only [mem_language, Accepts, Order.lt_add_one_iff, splitFirst] at ih h ⊢
+  simp only [mem_language, Accepts, splitFirst] at ih h ⊢
   obtain ⟨h1, h2⟩ := h
   split_ifs with ha
   · refine ⟨by grind, ?_⟩
@@ -517,7 +517,7 @@ theorem regex_of_dfa_singleton_accept [Finite Symbol] {State : Type*} [Finite St
       induction xs using List.reverseRec with
       | nil => grind
       | append_singleton xs x ih => grind
-    simp only [mem_language, Accepts, h, hdfa', Set.mem_singleton_iff]
+    simp only [mem_language, Accepts, h, hdfa']
     rw [dfa_eq]
     simp
   have : Fintype Symbol := Fintype.ofFinite Symbol
