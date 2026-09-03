@@ -256,9 +256,8 @@ theorem splitLastCompl_mem {flts : FLTS (Fin n) Symbol} {i j k : Fin n} {xs : Li
       · apply ih haux.1
         simp [Accepts]
         grind
-      · have eq : k = flts.mtr (flts.tr i a) xs := by
-          simpa [hk] using (splitLastCompl_nonempty_iff_mem_PathSupp hxs).mp hc1
-        grind [h.1, splitLastCompl_eq]
+      · grind [h.1, splitLastCompl_eq, by
+          simpa [hk] using (splitLastCompl_nonempty_iff_mem_PathSupp hxs).mp hc1]
     · rw [not_not] at hc1
       simpa [hc1, Accepts, PathSupp, FLTS.mtr] using hc
 
@@ -362,9 +361,7 @@ theorem splitFirst_mem {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Sym
   · refine ⟨by grind, ?_⟩
     have : PathSupp flts i [a] = ∅ := by grind [PathSupp]
     simp [this]
-  · have : flts.mtr i (a :: splitFirst flts (flts.tr i a) k xs) =
-      flts.mtr (flts.tr i a) (splitFirst flts (flts.tr i a) k xs) := by grind
-    by_cases hxs : xs = []
+  · by_cases hxs : xs = []
     · grind
     rw [pathSupp_head hxs] at h2
     by_cases hPath : splitFirst flts (flts.tr i a) k xs = []
