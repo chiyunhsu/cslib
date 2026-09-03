@@ -170,8 +170,8 @@ theorem splitLastCompl_eq {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List 
   | cons a xs ih =>
   by_cases hxs : xs = []
   · grind [splitLastCompl, PathSupp]
-  rw [pathSupp_head hxs, Set.mem_union, Set.mem_singleton_iff] at h
-  grind [splitLastCompl, (isPrefix_splitLastCompl flts (flts.tr i a) k xs).length_le]
+  grind [splitLastCompl, (isPrefix_splitLastCompl flts (flts.tr i a) k xs).length_le,
+  pathSupp_head hxs]
   -- classical
   -- simpa [splitLast_eq h h'] using splitLast_append flts s t xs
 
@@ -198,8 +198,8 @@ theorem splitLastCompl_nonempty_iff_mem_PathSupp {flts : FLTS (Fin n) Symbol} {i
   | cons a xs ih =>
   by_cases hxs' : xs = []
   · grind [splitLastCompl, PathSupp]
-  rw [pathSupp_head hxs', Set.mem_union, Set.mem_singleton_iff]
-  grind [splitLastCompl, (isPrefix_splitLastCompl flts (flts.tr i a) k xs).length_le]
+  grind [splitLastCompl, (isPrefix_splitLastCompl flts (flts.tr i a) k xs).length_le,
+  pathSupp_head hxs']
   -- classical
   -- rw [← splitLast_neq_iff_mem_PathSupp hxs, not_iff_not]
   -- nth_rw 3 [← splitLast_append flts s t xs]
@@ -258,8 +258,7 @@ theorem splitLastCompl_mem {flts : FLTS (Fin n) Symbol} {i j k : Fin n} {xs : Li
         grind
       · have eq : k = flts.mtr (flts.tr i a) xs := by
           simpa [hk] using (splitLastCompl_nonempty_iff_mem_PathSupp hxs).mp hc1
-        rw [splitLastCompl_eq hk eq]
-        grind [h.1]
+        grind [h.1, splitLastCompl_eq]
     · rw [not_not] at hc1
       simpa [hc1, Accepts, PathSupp, FLTS.mtr] using hc
 
@@ -370,8 +369,7 @@ theorem splitFirst_mem {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Sym
     rw [pathSupp_head hxs] at h2
     by_cases hPath : splitFirst flts (flts.tr i a) k xs = []
     · grind
-    rw [this, pathSupp_head hPath]
-    grind
+    grind [pathSupp_head]
 
 theorem splitFirst_mem_nonempty {flts : FLTS (Fin n) Symbol} {i k : Fin n} {xs : List Symbol}
     (hxs : xs ≠ []) (h : xs ∈ (language (BddPath.mk flts i k (k + 1)))) :
@@ -442,8 +440,7 @@ theorem language_bddpath_kstar (flts : FLTS (Fin n) Symbol) (k : Fin n) :
     · refine ⟨by grind, ?_⟩
       by_cases zs = []
       · grind
-      rw [Language.mem_one] at hysnotempty
-      grind [pathSupp_append]
+      grind [pathSupp_append, Language.mem_one]
     · rw [Language.mem_one] at hempty
       simp only [mem_language, Accepts]
       grind [PathSupp]
